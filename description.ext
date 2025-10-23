@@ -1,0 +1,5 @@
+//CFG FUNCTIONS
+class CfgFunctions
+{
+    #include "scripts\EagleEyeDOF\XK_6DOF_fnc.hpp"
+};
