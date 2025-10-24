@@ -46,19 +46,23 @@ if (_maxDistTargets < 50) then {_maxDistTargets = 50};
 if (_maxDistTargets > 800) then {_maxDistTargets = 800};
 if (_maxDistAllySkel > _maxDistAllies) then {_maxDistAllySkel = _maxDistAllies};
 
-//Check if player is looking through drone cam
+//Init variables
 private _isUAVGunner = (UAVControl getConnectedUAV player) isEqualTo [player, "GUNNER"];
+private _sidePlayer = side player;
+private _sideTarget = side _target;
+private _playerDist = player distance _target;
+private _isMarked = _target getVariable ["XK_6dofMarked",false];
 
 if (
     isNil "_target" ||
     isNull _target ||
     !alive player ||
-    (!alive _target && !(_target getVariable ["XK_6dofMarked",false])) ||
+    (!alive _target && !_isMarked) ||
     (_target isEqualTo player && !_isUAVGunner) ||
     !( _target isKindOf "CAManBase") ||
-    ((side _target isEqualTo side player) && (_target distance player > _maxDistAllies)) ||
-    (player distance _target > _maxDistTargets && !_isUAVGunner) ||
-    (player distance _target < 2 && !_isUAVGunner) ||
+    ((_sideTarget isEqualTo _sidePlayer) && (_playerDist > _maxDistAllies)) ||
+    (_playerDist > _maxDistTargets && !_isUAVGunner) ||
+    (_playerDist < 2 && !_isUAVGunner) ||
     !isNull curatorCamera
 ) exitWith {};
 
@@ -92,7 +96,8 @@ private _rightVec = vectorNormalized (_dirVec vectorCrossProduct [0,0,1]);
 private _botL = _targetASL vectorAdd (_rightVec vectorMultiply (_width * -1));
 private _botLTemp = _targetASL vectorAdd (_rightVec vectorMultiply ((_width * -1) + _hSlantOffset));
 private _botR = _targetASL vectorAdd (_rightVec vectorMultiply  _width);
-private _eyeZ = (eyePos _target) select 2;
+private _eyePos = eyePos _target;
+private _eyeZ = _eyePos select 2;
 private _h = if (_eyeZ - _hSlantOffset < 0.1) then {0.1} else {_eyeZ};
 private _topZ = _h + _hOffset;
 private _topZslant = _topZ - _hSlantOffset;
@@ -151,7 +156,7 @@ private _light = (getLighting) select 1;
 if (_iffDisplay) then {
 
     //Targets
-    private _iffPosAGL = ASLToAGL [(getPosASL _target) select 0, (getPosASL _target) select 1, ((eyePos _target) select 2) + _iffOffset + _hOffset];
+    private _iffPosAGL = ASLToAGL [_targetASL select 0, _targetASL select 1, _eyeZ + _iffOffset + _hOffset];
     private _fovAdjust = (getObjectFOV player - 0.75)/2;
     private _iffSizeAdjust = _iffSize - _fovAdjust;
     private _iffSizeUAV = _iffSize - _fovAdjust*2.5;
@@ -169,8 +174,6 @@ if (_iffDisplay) then {
 
     //Increase marker size by 50% if target is 6DOF user or player marked
     private _is6dof = _target getVariable ["XK_enable6dof",false];
-    private _isMarked = _target getVariable ["XK_6dofMarked",false];
-
     if (_is6dof) then {
         _iffSizeAdjust = _iffSizeAdjust * 2;
     };
@@ -190,8 +193,8 @@ if (_iffDisplay) then {
     };
     
     //Show target name
-    if (!DOF_Nametags || ((_target distance player > 20) && !_isMarked)) exitWith {};
-    private _targetPos = worldToScreen (ASLToAGL getPosASL _target);
+    if (!DOF_Nametags || ((_playerDist > 20) && !_isMarked)) exitWith {};
+    private _targetPos = worldToScreen (ASLToAGL _targetASL);
     if (count _targetPos > 1) then {
         if ((((_targetPos select 0) > 0) && ((_targetPos select 0) < 1) && ((_targetPos select 1) > 0) && ((_targetPos select 1) < 1))) then {
             private _name = _target getVariable ["XK_6dofName",nil];
@@ -224,7 +227,7 @@ if (_iffDisplay) then {
 
 //Render skeleton
 if (_render) then {
-    if ((side _target isEqualTo side player) && (_target distance player > _maxDistAllySkel)) exitWith {};
+    if ((_sideTarget isEqualTo _sidePlayer) && (_playerDist > _maxDistAllySkel)) exitWith {};
     private _bones = [
         ["rightfoot","rightleg"],
         ["rightleg","rightupleg"],
@@ -248,7 +251,7 @@ if (_render) then {
 
         //Bone position adjustment for target head
         private _boneB_ASL = if ((_x select 1) isEqualTo "head_hit") then {
-            eyePos _target;
+            _eyePos;
         } else {
             AGLToASL (_target modelToWorld _bone2);
         };
@@ -300,6 +303,6 @@ drawIcon3D [
 drawIcon3D [
     "\A3\ui_f\data\map\markers\military\dot_CA.paa",
     [1,1,0,1],
-    ASLToAGL (eyePos _target),
+    ASLToAGL _eyePos,
     0.4, 0.4, 0, "Check Vis 1", 0, 0.02, "TahomaB"
 ];

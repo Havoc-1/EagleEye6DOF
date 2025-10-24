@@ -1,6 +1,7 @@
 
 ## TO DO LIST
 Create method to assign drone as 6dof
+Fix Nametags disappearing on zoom
 
 ACE Menu?
     Filter to DOF users only
