@@ -54,7 +54,7 @@ if (
     isNull _target ||
     !alive player ||
     (!alive _target && !(_target getVariable ["XK_6dofMarked",false])) ||
-    (_target == player && !_isUAVGunner) ||
+    (_target isEqualTo player && !_isUAVGunner) ||
     !( _target isKindOf "CAManBase") ||
     ((side _target isEqualTo side player) && (_target distance player > _maxDistAllies)) ||
     (player distance _target > _maxDistTargets && !_isUAVGunner) ||
@@ -79,21 +79,35 @@ private _result = _clamp * (1 - abs(cos(_angleDiff)));
 //Reference points to construct bounding box
 private _hOffset = 0.3;
 private _fOffset = 0.1;
-private _width = 0.4 + _result;
 private _hSlantOffset = 0.2;
-private _h = if (((eyePos _target) select 2) - _hSlantOffset < 0.1) then {0.1} else {(eyePos _target) select 2};
+private _width = 0.4 + _result;
+private _camPos = AGLToASL positionCameraToWorld [0,0,0];
+private _targetASL = getPosASL _target;
+
+//Direction from camera to target
+private _dirVec = vectorNormalized (_targetASL vectorDiff _camPos);
+private _rightVec = vectorNormalized (_dirVec vectorCrossProduct [0,0,1]);
 
 //Calculate bounding box points
-private _botLtemp = _target getPos [_width, ((_target getDir player)+90)];
-private _botRtemp = _target getPos [_width, ((_target getDir player)-90)];
-private _botL = [_botLtemp select 0, _botLtemp select 1, ((getPosASL _target) select 2) - _fOffset];
-private _botR = [_botRtemp select 0, _botRtemp select 1, ((getPosASL _target) select 2) - _fOffset];
-private _topLslant = [_botL select 0, _botL select 1, _h + _hOffset - _hSlantOffset];
-private _topRslantTemp = (_target getPos [(_width - _hSlantOffset), ((_target getDir player)+90)]);
-private _topRslant = [_topRslantTemp select 0, _topRslantTemp select 1, _h + _hOffset];
-private _topR = [_botR select 0, _botR select 1, _h + _hOffset];
+private _botL = _targetASL vectorAdd (_rightVec vectorMultiply (_width * -1));
+private _botLTemp = _targetASL vectorAdd (_rightVec vectorMultiply ((_width * -1) + _hSlantOffset));
+private _botR = _targetASL vectorAdd (_rightVec vectorMultiply  _width);
+private _eyeZ = (eyePos _target) select 2;
+private _h = if (_eyeZ - _hSlantOffset < 0.1) then {0.1} else {_eyeZ};
+private _topZ = _h + _hOffset;
+private _topZslant = _topZ - _hSlantOffset;
 
-//Construct draw points for bounding box
+//Normalize height
+private _baseZ = (_targetASL select 2) - _fOffset;
+_botL set [2, _baseZ];
+_botR set [2, _baseZ];
+
+//Top positions
+private _topLslant = [_botL select 0, _botL select 1, _topZslant];
+private _topRslant = [_botLTemp select 0, _botLTemp select 1, _topZ];
+private _topR = [_botR select 0, _botR select 1, _topZ];
+
+// Construct final bounding box
 private _drawBox = [
     [_botL, _topLslant],
     [_topLslant, _topRslant],
@@ -103,8 +117,6 @@ private _drawBox = [
 ];
 
 //Init private variables
-private _tempDist = [];
-private _camPos = AGLToASL positionCameraToWorld [0,0,0];
 private _multiply = 4;
 
 //Calculate render distance
@@ -116,7 +128,8 @@ private _intersect = (lineIntersectsSurfaces [_tempList]) select {_x isNotEqualT
 
 if (count _intersect > 0) then {
     _intersect = _intersect apply {_camPos distance (_x select 0 select 0)};
-    private _newMultiply = parseNumber ((((_intersect sort true) select 0) * 0.9) toFixed 1);
+    _intersect sort true;
+    private _newMultiply = (_intersect select 0) * 0.9;
     if (_newMultiply < _multiply) then {_multiply = _newMultiply};
 };
 
@@ -139,13 +152,9 @@ if (_iffDisplay) then {
 
     //Targets
     private _iffPosAGL = ASLToAGL [(getPosASL _target) select 0, (getPosASL _target) select 1, ((eyePos _target) select 2) + _iffOffset + _hOffset];
-    private _iffSizeAdjust = (_iffSize - (getObjectFOV player - 0.75)/2);
-    private _iffSizeUAV = (_iffSize - (getObjectFOV player - 0.75)/2)*2.5;
-
-    //Increase marker size by 50% if target is 6DOF user or player marked
-    private _is6dof = _target getVariable ["XK_enable6dof",false];
-    private _isMarked = _target getVariable ["XK_6dofMarked",false];
-    
+    private _fovAdjust = (getObjectFOV player - 0.75)/2;
+    private _iffSizeAdjust = _iffSize - _fovAdjust;
+    private _iffSizeUAV = _iffSize - _fovAdjust*2.5;
 
     //Render enlarged IFF on self when operating UAV
     if (_target isEqualTo player && _isUAVGunner) then {
@@ -158,8 +167,12 @@ if (_iffDisplay) then {
         ];
     };
 
+    //Increase marker size by 50% if target is 6DOF user or player marked
+    private _is6dof = _target getVariable ["XK_enable6dof",false];
+    private _isMarked = _target getVariable ["XK_6dofMarked",false];
+
     if (_is6dof) then {
-        _iffSizeAdjust = _iffSizeAdjust * 2.5;
+        _iffSizeAdjust = _iffSizeAdjust * 2;
     };
     if (_isMarked) then {
         _iffSizeAdjust = _iffSizeAdjust * 2.5;
@@ -273,7 +286,7 @@ if !(DOF_Debug) exitWith {};
         "\A3\ui_f\data\map\markers\military\dot_CA.paa",
         [1,1,1,1],
         _x,
-        0.5, 0.5, 0, "", 0, 0.03, "TahomaB"
+        0.5, 0.5, 0, format ["%1", _forEachIndex], 0, 0.03, "TahomaB"
     ];
 }forEach (_drawBox apply {ASLToAGL (_x select 0)});
 
