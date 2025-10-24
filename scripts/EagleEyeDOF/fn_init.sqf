@@ -4,7 +4,8 @@
 */
 
 private _cbaCheck = isClass(configFile >> "CfgPatches" >> "cba_main");
-if !(_cbaCheck) exitWith {diag_log text format ["[6DOF] Failed to initialize EagleEye 6DOF, dependencies not loaded. CBA_A3: %1",_cbaCheck]};
+private _aceCheck = isClass(configFile >> "CfgPatches" >> "ace_main");
+if !(_cbaCheck || _aceCheck) exitWith {diag_log text format ["[6DOF] Failed to initialize EagleEye 6DOF, dependencies not loaded. CBA_A3: %1, ACE: %2",_cbaCheck, _aceCheck]};
 diag_log text "[6DOF] Initializing EagleEye 6DOF.";
 
 
@@ -17,7 +18,6 @@ DOF_iconUAV = "\A3\ui_f\data\map\markers\nato\b_uav.paa";              //IFF Ico
 
 //Initialize CBA Settings
 
-// SLIDER --- extra arguments: [_min, _max, _default, _trailingDecimals, _isPercentage]
 [
     "DOF_scanDist",
     "SLIDER",
@@ -92,7 +92,7 @@ DOF_iconUAV = "\A3\ui_f\data\map\markers\nato\b_uav.paa";              //IFF Ico
     "EDITBOX",
     ["Headgear Whitelist", "Classnames of headgear to enable 6DOF. Array/string format not required. Example: Helmet1, Hat2, ..."],
     "EagleEye 6DOF",
-    "NVGogglesB_blk_F, NVGogglesB_grn_F, NVGogglesB_gry_F",
+    "H_HelmetSpecB, H_HelmetSpecB_blk, H_HelmetSpecB_paint2, H_HelmetSpecB_paint1, H_HelmetSpecB_sand, H_HelmetSpecB_snakeskin, H_HelmetB_Enh_tna_F, H_HelmetSpecB_wdl, H_HelmetHBK_headset_F, H_HelmetHBK_chops_F, H_HelmetHBK_ear_F",
     1
 ] call CBA_fnc_addSetting;
 
@@ -131,6 +131,8 @@ diag_log text "[6DOF] Finished initializing EagleEye 6DOF.";
 //Globally broadcasted targets calculated server-side
 if !(isServer) exitWith {};
 diag_log text "[6DOF] Server/Host detected. Running server-side target list PFH.";
+
+//Create global array for all 6DOF tracked targets
 [{
     //6DOF Target List
     private _canSee = allUnits select {_x getVariable ["XK_enable6dof",false]};
@@ -166,3 +168,6 @@ diag_log text "[6DOF] Server/Host detected. Running server-side target list PFH.
 
     missionNamespace setVariable ["XK_6dofTargetsUAV",_uavTargetsList, true];
 },1,[]] call CBA_fnc_addPerFrameHandler;
+
+//Global incrementing ID number for marked targets
+missionNamespace setVariable ["XK_6dofMarkNum", 0, true];

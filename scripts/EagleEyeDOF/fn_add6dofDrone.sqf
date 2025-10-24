@@ -14,7 +14,7 @@
         [this, 25, 500] call XK_6DOF_fnc_add6dofDrone;
 */
 
-params ["_uav",["_searchRad",25],["_searchRng", 1000]];
+params ["_uav",["_searchRad",15],["_searchRng", 1000]];
 
 if (_uav getVariable ["XK_enable6dof", false]) exitWith {diag_log text format ["[6DOF] %1 %2 is already has 6DOF enabled. exiting add6dofDrone.sqf.", name _uav, getPosATL _uav]};
 

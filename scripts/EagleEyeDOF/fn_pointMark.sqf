@@ -32,9 +32,18 @@ _validTargets sort true;
 
 //If target is already marked, then unmark, otherwise mark target.
 private _markedUnit = _validTargets select 0 select 0;
-if (_markedUnit getVariable ["XK_6dofMarked",false]) then {
+private _targetNum = missionNamespace getVariable ["XK_6dofMarkNum", 0];
+private _isMarked = _markedUnit getVariable ["XK_6dofMarked",nil];
+
+//If already marked, subtract from global target increment and remove variable, else mark target
+if !(isNil "_isMarked") then {
     _markedUnit setVariable ["XK_6dofMarked",nil, true];
+    //_targetNum = _targetNum - 1;
+    //missionNamespace setVariable ["XK_6dofMarkNum", _targetNum, true];
 } else {
-    _markedUnit setVariable ["XK_6dofMarked",true, true];
+    _targetNum = _targetNum + 1;
+    if (_targetNum > 99) then {_targetNum = 1};
+    _markedUnit setVariable ["XK_6dofMarked",_targetNum, true];
+    missionNamespace setVariable ["XK_6dofMarkNum", _targetNum, true];
 };
 

@@ -51,13 +51,13 @@ private _isUAVGunner = (UAVControl getConnectedUAV player) isEqualTo [player, "G
 private _sidePlayer = side player;
 private _sideTarget = side _target;
 private _playerDist = player distance _target;
-private _isMarked = _target getVariable ["XK_6dofMarked",false];
+private _isMarked = _target getVariable "XK_6dofMarked";
 
 if (
     isNil "_target" ||
     isNull _target ||
     !alive player ||
-    (!alive _target && !_isMarked) ||
+    (!alive _target && !(isNil "_isMarked")) ||
     (_target isEqualTo player && !_isUAVGunner) ||
     !( _target isKindOf "CAManBase") ||
     ((_sideTarget isEqualTo _sidePlayer) && (_playerDist > _maxDistAllies)) ||
@@ -177,15 +177,17 @@ if (_iffDisplay) then {
     if (_is6dof) then {
         _iffSizeAdjust = _iffSizeAdjust * 2;
     };
-    if (_isMarked) then {
+
+    private _colorMark = _color;
+    if !(isNil "_isMarked") then {
         _iffSizeAdjust = _iffSizeAdjust * 2.5;
-        _color = [0.9,0.4,0.1,1];
+        _colorMark = [0.9,0.4,0.1,1];
     };
     
     if !(_target isEqualTo player) then {
         drawIcon3D [
             _icon,
-            _color,
+            _colorMark,
             _iffPosAGL,
             _iffSizeAdjust, _iffSizeAdjust,
             0, "", 0, 0.03, "TahomaB"
@@ -193,7 +195,7 @@ if (_iffDisplay) then {
     };
     
     //Show target name
-    if (!DOF_Nametags || ((_playerDist > 20) && !_isMarked)) exitWith {};
+    if (!DOF_Nametags || ((_playerDist > 20) && (isNil "_isMarked"))) exitWith {};
     private _targetPos = worldToScreen (ASLToAGL _targetASL);
     if (count _targetPos > 1) then {
         if ((((_targetPos select 0) > 0) && ((_targetPos select 0) < 1) && ((_targetPos select 1) > 0) && ((_targetPos select 1) < 1))) then {
@@ -202,7 +204,13 @@ if (_iffDisplay) then {
             private _tempText = 0.028;
             private _scale = linearConversion [10, 20, (_camPos distance _target), 0, 1, true];
             private _textSize = _tempText - (_scale * (_tempText - 0.008));
-            if (_isMarked) then {_textSize = _tempText};
+            if !(isNil "_isMarked") then {_textSize = _tempText};
+
+            private _targetNum = _target getVariable ["XK_6dofMarked", nil];
+            private _idText = "ID.#";
+            if ((_sidePlayer isNotEqualTo _sideTarget) && !(isNil "_isMarked")) then {
+                _idText = format ["ID.%1", _targetNum]
+            };
 
             drawIcon3D ["",
                 [1,1,1,1],
@@ -217,7 +225,7 @@ if (_iffDisplay) then {
                 [1,1,1,1],
                 (ASLToAGL _topR) vectorAdd [0,0,-0.08],
                 0.3, 0,
-                0, "ID.#", 2,
+                0, _idText, 2,
                 _textSize,
                 "PuristaMedium", "right"
             ];
@@ -264,7 +272,8 @@ if (_render) then {
 
         //If bone pair is obscured, get vector direction from player and multiply to keep drawLine3D in front of face
         private _vis = [player,"VIEW",_target] checkVisibility [_camPos, _avgBoneASL];
-        if (_vis < 0.6) then {
+        private _visCap = 0.55;
+        if (_vis < _visCap) then {
 
             private _dir1 = _camPos vectorFromTo _boneA_ASL;
             private _dir2 = _camPos vectorFromTo _boneB_ASL;
@@ -275,6 +284,21 @@ if (_render) then {
 
             //Draws lines again to fight opacity in low light environments. Not elegant but works.
             if (_light <= 0.4) then {drawLine3D [_pos1, _pos2, _color, _lineSize]};
+        };
+
+        if (DOF_Debug) then {
+            private _visColor = [1,1,1,1];
+            switch (true) do {
+                case (_vis < _visCap): {_visColor = [0,1,0,1]};
+                case (_vis < 0.3): {_visColor = [1,0,0,1]};
+            };
+
+            drawIcon3D [
+                "\A3\ui_f\data\map\markers\military\dot_CA.paa",
+                _visColor,
+                ASLToAGL _avgBoneASL,
+                0.5, 0.5, 0, format ["Vis: %1", text (_vis toFixed 2)], 0, 0.02, "RobotoCondensed"
+            ];
         };
     } forEach _bones;
 };
@@ -298,11 +322,11 @@ drawIcon3D [
     "\A3\ui_f\data\map\markers\military\dot_CA.paa",
     [1,1,0,1],
     ASLToAGL (_target modelToWorldVisualWorld (_target selectionPosition "spine2")),
-    0.4, 0.4, 0, "Check Vis 2", 0, 0.02, "TahomaB"
+    0.2, 0.2, 0, "VisCheck 2", 0, 0.02, "RobotoCondensed"
 ];
 drawIcon3D [
     "\A3\ui_f\data\map\markers\military\dot_CA.paa",
     [1,1,0,1],
     ASLToAGL _eyePos,
-    0.4, 0.4, 0, "Check Vis 1", 0, 0.02, "TahomaB"
+    0.2, 0.2, 0, "VisCheck 1", 0, 0.02, "RobotoCondensed"
 ];

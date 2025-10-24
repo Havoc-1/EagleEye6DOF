@@ -65,4 +65,4 @@ if (_goggles in DOF_gogglesList && _goggles isNotEqualTo "") then {
         };
     };
 };
-diag_log text format ["[6DOF] [enableOverlay] Unit: %1 %2 | Goggles: %3 (%4) | Headgear: %5 (%6) | Headgear Toggle: %7", name _unit, getPosATL _unit, (_goggles in DOF_gogglesList && _goggles isNotEqualTo ""), goggles _unit, _hasHeadgear, headgear _unit, DOF_headgearToggle];
+diag_log text format ["[6DOF] [enableOverlay] Unit: %1 %2 | Goggles: %3 (%4) | Headgear: %5 (%6) | Headgear Toggle: %7", name _unit, getPosATL _unit, (_goggles in DOF_gogglesList && _goggles isNotEqualTo ""), _goggles, _hasHeadgear, headgear _unit, DOF_headgearToggle];
