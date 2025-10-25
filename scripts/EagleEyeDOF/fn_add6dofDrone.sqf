@@ -16,7 +16,7 @@
 
 params ["_uav",["_searchRad",15],["_searchRng", 1000]];
 
-if (_uav getVariable ["XK_enable6dof", false]) exitWith {diag_log text format ["[6DOF] %1 %2 is already has 6DOF enabled. exiting add6dofDrone.sqf.", name _uav, getPosATL _uav]};
+if (_uav getVariable ["XK_6DOF_enable", false]) exitWith {diag_log text format ["[6DOF] %1 %2 is already has 6DOF enabled. exiting add6dofDrone.sqf.", name _uav, getPosATL _uav]};
 
 private _searchRadCap = 100;
 private _searchRngCap = 1500;
@@ -38,13 +38,13 @@ if (_searchRng > _searchRngCap) then {
     _searchRng = _searchRngCap;
 };
 
-_uav setVariable ["XK_enable6dof", true, true];
+_uav setVariable ["XK_6DOF_enable", true, true];
 [
 	{
         _args params ["_uav","_searchRad","_searchRng"];
 
         if (!alive _uav) exitWith {
-            _uav setVariable ["XK_6dofList", nil, true];
+            _uav setVariable ["XK_6DOF_List", nil, true];
             diag_log text format ["[6DOF] %1's drone has been destroyed, exiting add6dofDrone.sqf.", name _uav];
             [_this select 1] call CBA_fnc_removePerFrameHandler;
         };
@@ -80,7 +80,7 @@ _uav setVariable ["XK_enable6dof", true, true];
         _targets = flatten _targets;
         _targetsFilter = _targets arrayIntersect _targets;
 
-        _uav setVariable ["XK_6dofList", _targetsFilter, true];
+        _uav setVariable ["XK_6DOF_List", _targetsFilter, true];
     },
     1,[_uav, _searchRad, _searchRng]
 ]call CBA_fnc_addPerFrameHandler;

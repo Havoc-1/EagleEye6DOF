@@ -3,8 +3,8 @@ params ["_unit", "_gesture"];
 if (_gesture isNotEqualTo "ace_gestures_point") exitWith {};
 
 //Append global target list
-private _targetsList = missionNamespace getVariable ["XK_6dofTargets",[]];
-private _targetsListUAV = missionNamespace getVariable ["XK_6dofTargetsUAV",[]];
+private _targetsList = missionNamespace getVariable ["XK_6DOF_Targets",[]];
+private _targetsListUAV = missionNamespace getVariable ["XK_6DOF_targetsUAV",[]];
 if ((_targetsList isEqualTo []) && (_targetsListUAV isEqualTo [])) exitWith {};
 private _list = [];
 _list append _targetsList;
@@ -32,18 +32,6 @@ _validTargets sort true;
 
 //If target is already marked, then unmark, otherwise mark target.
 private _markedUnit = _validTargets select 0 select 0;
-private _targetNum = missionNamespace getVariable ["XK_6dofMarkNum", 0];
-private _isMarked = _markedUnit getVariable ["XK_6dofMarked",nil];
-
-//If already marked, subtract from global target increment and remove variable, else mark target
-if !(isNil "_isMarked") then {
-    _markedUnit setVariable ["XK_6dofMarked",nil, true];
-    //_targetNum = _targetNum - 1;
-    //missionNamespace setVariable ["XK_6dofMarkNum", _targetNum, true];
-} else {
-    _targetNum = _targetNum + 1;
-    if (_targetNum > 99) then {_targetNum = 1};
-    _markedUnit setVariable ["XK_6dofMarked",_targetNum, true];
-    missionNamespace setVariable ["XK_6dofMarkNum", _targetNum, true];
-};
+private _isMarked = _markedUnit getVariable ["XK_6DOF_Marked",nil];
+["XK_6DOF_EH_targetIncr", _markedUnit] call CBA_fnc_serverEvent;
 

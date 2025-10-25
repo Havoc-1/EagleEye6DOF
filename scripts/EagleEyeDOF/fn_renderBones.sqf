@@ -51,7 +51,7 @@ private _isUAVGunner = (UAVControl getConnectedUAV player) isEqualTo [player, "G
 private _sidePlayer = side player;
 private _sideTarget = side _target;
 private _playerDist = player distance _target;
-private _isMarked = _target getVariable "XK_6dofMarked";
+private _isMarked = _target getVariable "XK_6DOF_Marked";
 
 if (
     isNil "_target" ||
@@ -133,8 +133,7 @@ private _intersect = (lineIntersectsSurfaces [_tempList]) select {_x isNotEqualT
 
 if (count _intersect > 0) then {
     _intersect = _intersect apply {_camPos distance (_x select 0 select 0)};
-    _intersect sort true;
-    private _newMultiply = (_intersect select 0) * 0.9;
+    private _newMultiply = ((_intersect call CBA_fnc_findMin) select 0) * 0.9;
     if (_newMultiply < _multiply) then {_multiply = _newMultiply};
 };
 
@@ -149,7 +148,7 @@ private _light = (getLighting) select 1;
     drawLine3D [_pos1, _pos2, _color, _lineBoxSize];
 
     //Draws lines again to fight opacity in low light environments. Not elegant but works.
-    if (_light <= 0.4) then {drawLine3D [_pos1, _pos2, _color, _lineBoxSize]};
+    if (_light <= 0.4 && (currentVisionMode player isEqualTo 0)) then {drawLine3D [_pos1, _pos2, _color, _lineBoxSize]};
 }forEach _drawBox;
 
 //Render IFF Icons
@@ -164,7 +163,7 @@ if (_iffDisplay) then {
     //Render enlarged IFF on self when operating UAV
     if (_target isEqualTo player && _isUAVGunner) then {
         drawIcon3D [
-            DOF_iconUAV,
+            XK_6DOF_iconUAV,
             _color,
             _iffPosAGL,
             _iffSizeUAV, _iffSizeUAV,
@@ -173,7 +172,7 @@ if (_iffDisplay) then {
     };
 
     //Increase marker size by 50% if target is 6DOF user or player marked
-    private _is6dof = _target getVariable ["XK_enable6dof",false];
+    private _is6dof = _target getVariable ["XK_6DOF_enable",false];
     if (_is6dof) then {
         _iffSizeAdjust = _iffSizeAdjust * 2;
     };
@@ -181,7 +180,8 @@ if (_iffDisplay) then {
     private _colorMark = _color;
     if !(isNil "_isMarked") then {
         _iffSizeAdjust = _iffSizeAdjust * 2.5;
-        _colorMark = [0.9,0.4,0.1,1];
+        _colorMark = XK_6DOF_colorMark;
+        _colorMark pushBack 1;
     };
     
     if !(_target isEqualTo player) then {
@@ -195,18 +195,18 @@ if (_iffDisplay) then {
     };
     
     //Show target name
-    if (!DOF_Nametags || ((_playerDist > 20) && (isNil "_isMarked"))) exitWith {};
+    if (!XK_6DOF_nameTags || ((_playerDist > 20) && (isNil "_isMarked"))) exitWith {};
     private _targetPos = worldToScreen (ASLToAGL _targetASL);
     if (count _targetPos > 1) then {
         if ((((_targetPos select 0) > 0) && ((_targetPos select 0) < 1) && ((_targetPos select 1) > 0) && ((_targetPos select 1) < 1))) then {
-            private _name = _target getVariable ["XK_6dofName",nil];
+            private _name = _target getVariable ["XK_6DOF_Name",nil];
             if !(isNil "_name") then {_iffName = _name};
             private _tempText = 0.028;
             private _scale = linearConversion [10, 20, (_camPos distance _target), 0, 1, true];
             private _textSize = _tempText - (_scale * (_tempText - 0.008));
             if !(isNil "_isMarked") then {_textSize = _tempText};
 
-            private _targetNum = _target getVariable ["XK_6dofMarked", nil];
+            private _targetNum = _target getVariable ["XK_6DOF_Marked", nil];
             private _idText = "ID.#";
             if ((_sidePlayer isNotEqualTo _sideTarget) && !(isNil "_isMarked")) then {
                 _idText = format ["ID.%1", _targetNum]
@@ -283,10 +283,10 @@ if (_render) then {
             drawLine3D [_pos1, _pos2, _color, _lineSize];
 
             //Draws lines again to fight opacity in low light environments. Not elegant but works.
-            if (_light <= 0.4) then {drawLine3D [_pos1, _pos2, _color, _lineSize]};
+            if (_light <= 0.4 && (currentVisionMode player isEqualTo 0)) then {drawLine3D [_pos1, _pos2, _color, _lineSize]};
         };
 
-        if (DOF_Debug) then {
+        if (XK_6DOF_Debug) then {
             private _visColor = [1,1,1,1];
             switch (true) do {
                 case (_vis < _visCap): {_visColor = [0,1,0,1]};
@@ -305,7 +305,7 @@ if (_render) then {
 
 
 //Debug
-if !(DOF_Debug) exitWith {};
+if !(XK_6DOF_Debug) exitWith {};
 
 //Bounding box corners debug
 {
