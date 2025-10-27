@@ -51,7 +51,7 @@ private _isUAVGunner = (UAVControl getConnectedUAV player) isEqualTo [player, "G
 private _sidePlayer = side player;
 private _sideTarget = side _target;
 private _playerDist = player distance _target;
-private _isMarked = _target getVariable "XK_6DOF_Marked";
+private _isMarked = _target getVariable ["XK_6DOF_Marked",nil];
 
 if (
     isNil "_target" ||
@@ -68,8 +68,9 @@ if (
 
 //Calculate dynamic bounding box width
 private _clamp = 0;
-switch (stance _target) do {
-    case "STAND";
+private _stance = stance _target;
+switch (_stance) do {
+    case "STAND": {_clamp = 0.1};
     case "CROUCH": {_clamp = 0.1};
     case "PRONE": {_clamp = 0.8};
     case "UNDEFINED": {_clamp = 0.8};
@@ -84,7 +85,9 @@ private _result = _clamp * (1 - abs(cos(_angleDiff)));
 private _hOffset = 0.3;
 private _fOffset = 0.1;
 private _hSlantOffset = 0.2;
-private _width = 0.4 + _result;
+private _baseWidth = 0.4;
+private _width = if (_stance isNotEqualTo "STAND") then {_baseWidth + _result} else {_baseWidth - _result};
+
 private _camPos = AGLToASL positionCameraToWorld [0,0,0];
 private _targetASL = getPosASL _target;
 
@@ -159,6 +162,8 @@ if (_iffDisplay) then {
     private _fovAdjust = (getObjectFOV player - 0.75)/2;
     private _iffSizeAdjust = _iffSize - _fovAdjust;
     private _iffSizeUAV = _iffSize - _fovAdjust*2.5;
+    private _colorMark = _color;
+    
 
     //Render enlarged IFF on self when operating UAV
     if (_target isEqualTo player && _isUAVGunner) then {
@@ -177,14 +182,14 @@ if (_iffDisplay) then {
         _iffSizeAdjust = _iffSizeAdjust * 2;
     };
 
-    private _colorMark = _color;
     if !(isNil "_isMarked") then {
         _iffSizeAdjust = _iffSizeAdjust * 2.5;
         _colorMark = XK_6DOF_colorMark;
-        _colorMark pushBack 1;
+        _colorMark set [3,1];
     };
     
-    if !(_target isEqualTo player) then {
+
+    if (_target isNotEqualTo player) then {
         drawIcon3D [
             _icon,
             _colorMark,
@@ -204,31 +209,35 @@ if (_iffDisplay) then {
             private _tempText = 0.028;
             private _scale = linearConversion [10, 20, (_camPos distance _target), 0, 1, true];
             private _textSize = _tempText - (_scale * (_tempText - 0.008));
+            private _textAGL = ASLToAGL _topR;
             if !(isNil "_isMarked") then {_textSize = _tempText};
 
             private _targetNum = _target getVariable ["XK_6DOF_Marked", nil];
-            private _idText = "ID.#";
-            if ((_sidePlayer isNotEqualTo _sideTarget) && !(isNil "_isMarked")) then {
-                _idText = format ["ID.%1", _targetNum]
-            };
+            //private _idText = "ID.#";
 
             drawIcon3D ["",
                 [1,1,1,1],
-                ASLToAGL _topR,
+                _textAGL,
                 0.3, 0,
                 0, _iffName, 2,
                 _textSize,
                 "PuristaMedium", "right"
             ];
 
-            drawIcon3D ["",
-                [1,1,1,1],
-                (ASLToAGL _topR) vectorAdd [0,0,-0.08],
-                0.3, 0,
-                0, _idText, 2,
-                _textSize,
-                "PuristaMedium", "right"
-            ];
+            if ((_sidePlayer isNotEqualTo _sideTarget) && !(isNil "_isMarked")) then {
+                _idText = format ["ID.%1", _targetNum];
+                
+                // Draw second line (ID text) dynamically below
+                drawIcon3D [
+                    "",
+                    [1,1,1,1],
+                    _textAGL vectorAdd [0, 0, -0.08],
+                    0.3, 0,
+                    0, _idText, 2,
+                    _textSize,
+                    "PuristaMedium", "right"
+                ];
+            };
         };
     };
 };

@@ -4,7 +4,7 @@
     
     Arguments:
         0: Target <UNIT> - Enable 6DOF on drone.
-        1: Search Radius <NUMBER> (Optional) - Max radius to consider targets on turret view.
+        1: Search diameter <NUMBER> (Optional) - Max diameter to consider targets on turret view.
         2: Search Range <NUMBER> (Optional) - Max distance to consider targets on turret view.
     
     Return Value: None
@@ -14,11 +14,11 @@
         [this, 25, 500] call XK_6DOF_fnc_add6dofDrone;
 */
 
-params ["_uav",["_searchRad",15],["_searchRng", 1000]];
+params ["_uav",["_searchDiam",30],["_searchRng", 1000]];
 
 if (_uav getVariable ["XK_6DOF_enable", false]) exitWith {diag_log text format ["[6DOF] %1 %2 is already has 6DOF enabled. exiting add6dofDrone.sqf.", name _uav, getPosATL _uav]};
 
-private _searchRadCap = 100;
+private _searchDiamCap = 200;
 private _searchRngCap = 1500;
 
 if (isNil "_uav" || isNull _uav) exitWith {
@@ -29,9 +29,9 @@ if !(_uav isKindOf "UAV_01_Base_F") exitWith {
 };
 
 //Cap for gameplay balance and performance, units beyond this range may have undesired results
-if (_searchRad > _searchRadCap) then {
-    diag_log text format ["[6DOF] %1's drone %2 search radius too large (%3), setting search radius to %4.", name _uav, getPosATL _uav, _searchRad, _searchRadCap];
-    _searchRad = _searchRadCap;
+if (_searchDiam > _searchDiamCap) then {
+    diag_log text format ["[6DOF] %1's drone %2 search diameter too large (%3), setting search diameter to %4.", name _uav, getPosATL _uav, _searchDiam, _searchDiamCap];
+    _searchDiam = _searchDiamCap;
 };
 if (_searchRng > _searchRngCap) then {
     diag_log text format ["[6DOF] %1's drone %2 search range too long (%3), setting search range to %4.", name _uav, getPosATL _uav, _searchRng, _searchRngCap];
@@ -41,7 +41,7 @@ if (_searchRng > _searchRngCap) then {
 _uav setVariable ["XK_6DOF_enable", true, true];
 [
 	{
-        _args params ["_uav","_searchRad","_searchRng"];
+        _args params ["_uav","_searchDiam","_searchRng"];
 
         if (!alive _uav) exitWith {
             _uav setVariable ["XK_6DOF_List", nil, true];
@@ -70,7 +70,7 @@ _uav setVariable ["XK_6DOF_enable", true, true];
 
         //Find and filter targets
         private _targets = [];
-        private _searchList = ([_aimPosATL, _searchRad*2, _searchRad*2, 0, false] nearEntities [["CAManBase","LandVehicle"], false, true, true]) select {_x != _uav && (_uav distance _x <= _searchRng)};
+        private _searchList = ([_aimPosATL, _searchDiam, _searchDiam, 0, false] nearEntities [["CAManBase","LandVehicle"], false, true, true]) select {_x != _uav && (_uav distance _x <= _searchRng)};
         {
             _targets append (if (isNull objectParent _x) then {[_x]} else {crew _x});
         } forEach _searchList;
@@ -82,5 +82,5 @@ _uav setVariable ["XK_6DOF_enable", true, true];
 
         _uav setVariable ["XK_6DOF_List", _targetsFilter, true];
     },
-    1,[_uav, _searchRad, _searchRng]
+    1,[_uav, _searchDiam, _searchRng]
 ]call CBA_fnc_addPerFrameHandler;

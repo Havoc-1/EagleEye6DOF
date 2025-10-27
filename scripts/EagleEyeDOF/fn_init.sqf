@@ -34,7 +34,7 @@ XK_6DOF_iconUAV = "\A3\ui_f\data\map\markers\nato\b_uav.paa";              //IFF
 ] call CBA_fnc_addSetting;
 
 [
-    "XK_6DOF_iconAlly",
+    "XK_6DOF_colorAlly",
     "COLOR",
     ["Friendly IFF","Color for friendly targets"],
     "EagleEye 6DOF",
@@ -156,15 +156,8 @@ diag_log text "[6DOF] Server/Host detected. Running server-side target list PFH.
         if (count _listUAV > 0) then {_uavTargetsList append _listUAV};
     } forEach _canSeeUAV;
 
-
     _uavTargetsList = [_uavTargetsList, {_this in _newTargetsList}] call CBA_fnc_reject;
     _uavTargetsList arrayIntersect _uavTargetsList;
-    /* {
-        private _index = _uavTargetsList find _x;
-        if (_index isNotEqualTo -1) then {
-            _uavTargetsList deleteAt _index;
-        };
-    }forEach _newTargetsList; */
 
     missionNamespace setVariable ["XK_6DOF_targetsUAV",_uavTargetsList, true];
 },1,[]] call CBA_fnc_addPerFrameHandler;

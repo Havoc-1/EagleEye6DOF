@@ -9,12 +9,13 @@
 private _sidePlayer = side player;
 
 //Faction Colors
-private _colorAlly = XK_6DOF_iconAlly;
+private _colorAlly = XK_6DOF_colorAlly;
 private _colorTarget = XK_6DOF_colorTarget;
 private _colorUnknown = XK_6DOF_colorUnknown;
-_colorAlly pushBack 1;
-_colorTarget pushBack 1;
-_colorUnknown pushBack 1;
+_colorAlly set [3,1];
+_colorTarget set [3,1];
+_colorUnknown set [3,1];
+
 
 //6DOF units
 private _6dofUnits = allUnits select {_x getVariable ["XK_6DOF_enable", false]};
