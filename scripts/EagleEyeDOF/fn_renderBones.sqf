@@ -10,12 +10,13 @@
         4: Display IFF Icon <BOOL> (Optional) - Enable or disable IFF Icon above target.
         5: IFF Name <STRING> (Optional) - Name to display when looking at target.
         6: Max Distance Targets <NUMBER> (Optional) - Ignore enemy renders on targets beyond this distance.
-        7: Max Distance Allies <NUMBER> (Optional) - Ignore allied renders on targets beyond this distance.
-        8: Max Distance Allied Skeleton <NUMBER> (Optional) - Ignore skeleton renders on allied targets beyond this distance (shows bounding box only).
-        9: Line Size <NUMBER> (Optional) - Thickness of bone lines for skeleton render.
-        10: Line Box Size <NUMBER> (Optional) - Thickness of bounding box lines.
-        11: IFF Size <NUMBER> (Optional) - Size for IFF Icon.
-        12: IFF Offset <NUMBER> (Optional) - IFF Icon height offset above target's head.
+        7: Max Distance Target Skeleton <NUMBER> (Optional) - Ignore skeleton renders on enemy & unknown targets beyond this distance (shows bounding box only).
+        8: Max Distance Allies <NUMBER> (Optional) - Ignore allied renders on targets beyond this distance.
+        9: Max Distance Allied Skeleton <NUMBER> (Optional) - Ignore skeleton renders on allied targets beyond this distance (shows bounding box only).
+        10: Line Size <NUMBER> (Optional) - Thickness of bone lines for skeleton render.
+        11: Line Box Size <NUMBER> (Optional) - Thickness of bounding box lines.
+        12: IFF Size <NUMBER> (Optional) - Size for IFF Icon.
+        13: IFF Offset <NUMBER> (Optional) - IFF Icon height offset above target's head.
     
     Return Value: None
 
@@ -33,6 +34,7 @@ params [
     ["_iffDisplay", true],
     ["_iffName", "Unknown"],
     ["_maxDistTargets", 200],
+    ["_maxDistTargetSkel", 100],
     ["_maxDistAllies", 100],
     ["_maxDistAllySkel", 50],
     ["_lineSize", 12],
@@ -51,19 +53,25 @@ private _isUAVGunner = (UAVControl getConnectedUAV player) isEqualTo [player, "G
 private _sidePlayer = side player;
 private _sideTarget = side _target;
 private _playerDist = player distance _target;
-private _isMarked = _target getVariable ["XK_6DOF_Marked",nil];
+private _targetNum = _target getVariable ["XK_6DOF_Marked", nil];
+private _isMarked = isNil "_targetNum";
+private _visionMode = currentVisionMode player;
+private _isUncon = _target getVariable ["ACE_isUnconscious", false];
 
+//Exit conditions
 if (
     isNil "_target" ||
     isNull _target ||
     !alive player ||
-    (!alive _target && !(isNil "_isMarked")) ||
+    (!alive _target && !_isMarked) ||
     (_target isEqualTo player && !_isUAVGunner) ||
-    !( _target isKindOf "CAManBase") ||
+    !(_target isKindOf "CAManBase") ||
     ((_sideTarget isEqualTo _sidePlayer) && (_playerDist > _maxDistAllies)) ||
+    (XK_6DOF_filterNVG && _visionMode isEqualTo 0) ||
     (_playerDist > _maxDistTargets && !_isUAVGunner) ||
     (_playerDist < 2 && !_isUAVGunner) ||
-    !isNull curatorCamera
+    !isNull curatorCamera ||
+    (XK_6DOF_unconCheck && _isUncon && !_isMarked)
 ) exitWith {};
 
 //Calculate dynamic bounding box width
@@ -151,7 +159,7 @@ private _light = (getLighting) select 1;
     drawLine3D [_pos1, _pos2, _color, _lineBoxSize];
 
     //Draws lines again to fight opacity in low light environments. Not elegant but works.
-    if (_light <= 0.4 && (currentVisionMode player isEqualTo 0)) then {drawLine3D [_pos1, _pos2, _color, _lineBoxSize]};
+    if (_light <= 0.4 && (_visionMode isEqualTo 0)) then {drawLine3D [_pos1, _pos2, _color, _lineBoxSize]};
 }forEach _drawBox;
 
 //Render IFF Icons
@@ -163,7 +171,6 @@ if (_iffDisplay) then {
     private _iffSizeAdjust = _iffSize - _fovAdjust;
     private _iffSizeUAV = _iffSize - _fovAdjust*2.5;
     private _colorMark = _color;
-    
 
     //Render enlarged IFF on self when operating UAV
     if (_target isEqualTo player && _isUAVGunner) then {
@@ -178,17 +185,14 @@ if (_iffDisplay) then {
 
     //Increase marker size by 50% if target is 6DOF user or player marked
     private _is6dof = _target getVariable ["XK_6DOF_enable",false];
-    if (_is6dof) then {
-        _iffSizeAdjust = _iffSizeAdjust * 2;
-    };
+    if (_is6dof) then { _iffSizeAdjust = _iffSizeAdjust * 2};
 
-    if !(isNil "_isMarked") then {
+    if (!_isMarked) then {
         _iffSizeAdjust = _iffSizeAdjust * 2.5;
         _colorMark = XK_6DOF_colorMark;
         _colorMark set [3,1];
     };
     
-
     if (_target isNotEqualTo player) then {
         drawIcon3D [
             _icon,
@@ -200,31 +204,29 @@ if (_iffDisplay) then {
     };
     
     //Show target name
-    if (!XK_6DOF_nameTags || ((_playerDist > 20) && (isNil "_isMarked"))) exitWith {};
+    if (!XK_6DOF_nameTags || ((_playerDist > 20) && _isMarked) || _isUAVGunner) exitWith {};
     private _targetPos = worldToScreen (ASLToAGL _targetASL);
+
     if (count _targetPos > 1) then {
         if ((((_targetPos select 0) > 0) && ((_targetPos select 0) < 1) && ((_targetPos select 1) > 0) && ((_targetPos select 1) < 1))) then {
             private _name = _target getVariable ["XK_6DOF_Name",nil];
             if !(isNil "_name") then {_iffName = _name};
             private _tempText = 0.028;
-            private _scale = linearConversion [10, 20, (_camPos distance _target), 0, 1, true];
-            private _textSize = _tempText - (_scale * (_tempText - 0.008));
+            //private _scale = linearConversion [10, 20, (_camPos distance _target), 0, 1, true];
+            //private _textSize = _tempText - (_scale * (_tempText - 0.008));
             private _textAGL = ASLToAGL _topR;
-            if !(isNil "_isMarked") then {_textSize = _tempText};
-
-            private _targetNum = _target getVariable ["XK_6DOF_Marked", nil];
-            //private _idText = "ID.#";
+            if (!_isMarked) then {_textSize = _tempText};
 
             drawIcon3D ["",
                 [1,1,1,1],
                 _textAGL,
                 0.3, 0,
                 0, _iffName, 2,
-                _textSize,
+                _tempText,
                 "PuristaMedium", "right"
             ];
 
-            if ((_sidePlayer isNotEqualTo _sideTarget) && !(isNil "_isMarked")) then {
+            if ((_sidePlayer isNotEqualTo _sideTarget) && !_isMarked) then {
                 _idText = format ["ID.%1", _targetNum];
                 
                 // Draw second line (ID text) dynamically below
@@ -234,7 +236,7 @@ if (_iffDisplay) then {
                     _textAGL vectorAdd [0, 0, -0.08],
                     0.3, 0,
                     0, _idText, 2,
-                    _textSize,
+                    _tempText,
                     "PuristaMedium", "right"
                 ];
             };
@@ -244,58 +246,48 @@ if (_iffDisplay) then {
 
 //Render skeleton
 if (_render) then {
-    if ((_sideTarget isEqualTo _sidePlayer) && (_playerDist > _maxDistAllySkel)) exitWith {};
-    private _bones = [
-        ["rightfoot","rightleg"],
-        ["rightleg","rightupleg"],
-        ["leftfoot","leftleg"],
-        ["leftleg","leftupleg"],
-        ["rightupleg","pelvis"],
-        ["leftupleg","pelvis"],
-        ["pelvis","head_hit"],
-        ["rightshoulder","leftshoulder"],
-        ["rightshoulder","rightforearm"],
-        ["rightforearm","righthand"],
-        ["leftshoulder","leftforearm"],
-        ["leftforearm","lefthand"]
-    ];
+    if (
+        (_sideTarget isEqualTo _sidePlayer) && (_playerDist > _maxDistAllySkel) ||
+        (_sideTarget isNotEqualTo _sidePlayer) && (_playerDist > _maxDistTargetSkel)
+    ) exitWith {};
     
-    private _visList = [];
+    //Calculate bones based on LOD
+    private _bones = [_target, _playerDist, _eyePos] call XK_6DOF_fnc_bonesLOD;
+
+    //drawLine3D for each bone set
     {
-        private _bone1 = _target selectionPosition (_x select 0);
-        private _bone2 = _target selectionPosition (_x select 1);
-        private _boneA_ASL = AGLToASL (_target modelToWorld _bone1);
-
-        //Bone position adjustment for target head
-        private _boneB_ASL = if ((_x select 1) isEqualTo "head_hit") then {
-            _eyePos;
-        } else {
-            AGLToASL (_target modelToWorld _bone2);
-        };
-
-        private _avgBoneASL = [
-            ((_boneA_ASL select 0) + (_boneB_ASL select 0))/2,
-            ((_boneA_ASL select 1) + (_boneB_ASL select 1))/2,
-            ((_boneA_ASL select 2) + (_boneB_ASL select 2))/2
-        ];
-
-        //If bone pair is obscured, get vector direction from player and multiply to keep drawLine3D in front of face
-        private _vis = [player,"VIEW",_target] checkVisibility [_camPos, _avgBoneASL];
+        private _visPos = _x select 0;
+        private _boneList = _x select 1;
+        private _vis = [player,"VIEW",_target] checkVisibility [_camPos, _visPos];
         private _visCap = 0.55;
+
         if (_vis < _visCap) then {
+            {
+                private _bone1 = _target selectionPosition (_x select 0);
+                private _bone2 = _target selectionPosition (_x select 1);
+                private _boneA_ASL = AGLToASL (_target modelToWorld _bone1);
 
-            private _dir1 = _camPos vectorFromTo _boneA_ASL;
-            private _dir2 = _camPos vectorFromTo _boneB_ASL;
-            private _pos1 = ASLToAGL (_camPos vectorAdd (_dir1 vectorMultiply _multiply));
-            private _pos2 = ASLToAGL (_camPos vectorAdd (_dir2 vectorMultiply _multiply));
+                //Bone position adjustment for target head
+                private _boneB_ASL = if ((_x select 1) isEqualTo "head_hit") then {
+                    _eyePos;
+                } else {
+                    AGLToASL (_target modelToWorld _bone2);
+                };
 
-            drawLine3D [_pos1, _pos2, _color, _lineSize];
+                private _dir1 = _camPos vectorFromTo _boneA_ASL;
+                private _dir2 = _camPos vectorFromTo _boneB_ASL;
+                private _pos1 = ASLToAGL (_camPos vectorAdd (_dir1 vectorMultiply _multiply));
+                private _pos2 = ASLToAGL (_camPos vectorAdd (_dir2 vectorMultiply _multiply));
 
-            //Draws lines again to fight opacity in low light environments. Not elegant but works.
-            if (_light <= 0.4 && (currentVisionMode player isEqualTo 0)) then {drawLine3D [_pos1, _pos2, _color, _lineSize]};
+                drawLine3D [_pos1, _pos2, _color, _lineSize];
+
+                //Draws lines again to fight opacity in low light environments. Not elegant but works.
+                if (_light <= 0.4 && (_visionMode isEqualTo 0)) then {drawLine3D [_pos1, _pos2, _color, _lineSize]};
+            }forEach _boneList;
         };
-
-        if (XK_6DOF_Debug) then {
+    
+        //Debug bone visibility
+        if (XK_6DOF_Debug && !_isUAVGunner) then {
             private _visColor = [1,1,1,1];
             switch (true) do {
                 case (_vis < _visCap): {_visColor = [0,1,0,1]};
@@ -305,37 +297,47 @@ if (_render) then {
             drawIcon3D [
                 "\A3\ui_f\data\map\markers\military\dot_CA.paa",
                 _visColor,
-                ASLToAGL _avgBoneASL,
+                ASLToAGL _visPos,
                 0.5, 0.5, 0, format ["Vis: %1", text (_vis toFixed 2)], 0, 0.02, "RobotoCondensed"
             ];
         };
-    } forEach _bones;
+    }forEach _bones;
 };
 
-
-//Debug
+//Debug visibility for drone and bounding box corners
 if !(XK_6DOF_Debug) exitWith {};
+if (_isUAVGunner && _target isNotEqualTo player) then {
+    private _uav = getConnectedUAV player;
+    if (!isEngineOn _uav || (fuel _uav == 0) || !alive _uav) exitWith {};
 
-//Bounding box corners debug
-{
+    private _uavCfg = configFile >> "CfgVehicles" >> typeOf _uav;
+    private _camPosSel = getText (_uavCfg >> "uavCameraGunnerPos");
+    if (_camPosSel isEqualTo "") exitWith {};
+    private _camPos = _uav selectionPosition _camPosSel;
+    private _visCheck1 = [_target,"VIEW",_uav] checkVisibility [_uav modelToWorldVisualWorld _camPos, eyePos _target];
+    private _visCheck2 = [_target,"VIEW",_uav] checkVisibility [_uav modelToWorldVisualWorld _camPos, (_target modelToWorldVisualWorld (_target selectionPosition "spine2"))];
+
+    //Intersection points check to mark as 6dof target
     drawIcon3D [
         "\A3\ui_f\data\map\markers\military\dot_CA.paa",
-        [1,1,1,1],
-        _x,
-        0.5, 0.5, 0, format ["%1", _forEachIndex], 0, 0.03, "TahomaB"
+        [1,1,0,1],
+        ASLToAGL (_target modelToWorldVisualWorld (_target selectionPosition "spine2")),
+        0.2, 0.2, 0, format ["VisDrone: %1", _visCheck2], 0, 0.02, "RobotoCondensed"
     ];
-}forEach (_drawBox apply {ASLToAGL (_x select 0)});
-
-//Intersection points check to mark as 6dof target
-drawIcon3D [
-    "\A3\ui_f\data\map\markers\military\dot_CA.paa",
-    [1,1,0,1],
-    ASLToAGL (_target modelToWorldVisualWorld (_target selectionPosition "spine2")),
-    0.2, 0.2, 0, "VisCheck 2", 0, 0.02, "RobotoCondensed"
-];
-drawIcon3D [
-    "\A3\ui_f\data\map\markers\military\dot_CA.paa",
-    [1,1,0,1],
-    ASLToAGL _eyePos,
-    0.2, 0.2, 0, "VisCheck 1", 0, 0.02, "RobotoCondensed"
-];
+    drawIcon3D [
+        "\A3\ui_f\data\map\markers\military\dot_CA.paa",
+        [1,1,0,1],
+        ASLToAGL _eyePos,
+        0.2, 0.2, 0, format ["VisDrone: %1", _visCheck1], 0, 0.02, "RobotoCondensed"
+    ];
+} else {
+    //Bounding box corners debug
+    {
+        drawIcon3D [
+            "\A3\ui_f\data\map\markers\military\dot_CA.paa",
+            [1,1,1,1],
+            _x,
+            0.5, 0.5, 0, format ["%1", _forEachIndex], 0, 0.03, "TahomaB"
+        ];
+    }forEach (_drawBox apply {ASLToAGL (_x select 0)});
+};

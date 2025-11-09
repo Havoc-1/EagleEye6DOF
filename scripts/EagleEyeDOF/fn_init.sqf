@@ -15,155 +15,34 @@ XK_6DOF_iconUnknown = "\A3\ui_f\data\map\markers\nato\o_unknown.paa";      //IFF
 XK_6DOF_iconUAV = "\A3\ui_f\data\map\markers\nato\b_uav.paa";              //IFF Icon for Self when operating UAV camera
 
 //Initialize CBA Settings
-[
-    "XK_6DOF_scanList",
-    "SLIDER",
-    ["Scan Range","Maximum distance in metres from EagleEye user to register as target. May affect performance if set too high."],
-    "EagleEye 6DOF",
-    [50, 300, 200, 0],
-    1
-] call CBA_fnc_addSetting;
+[] call XK_6DOF_fnc_cbaSettings;
 
-[
-    "XK_6DOF_nameTags",
-    "CHECKBOX",
-    ["Enable Nametags", "Shows name of 6DOF users next to bounding box when within 15m."],
-    "EagleEye 6DOF",
-    true,
-    1
-] call CBA_fnc_addSetting;
+XK_6DOF_serverList = [];
+XK_6DOF_serverListOld = [];
+XK_6DOF_serverListUAV = [];
+XK_6DOF_serverListUAVOld = [];
 
-[
-    "XK_6DOF_colorAlly",
-    "COLOR",
-    ["Friendly IFF","Color for friendly targets"],
-    "EagleEye 6DOF",
-    [0.05, 0.05, 1]
-] call CBA_fnc_addSetting;
+["XK_6DOF_EH_addTargetList", {
 
-[
-    "XK_6DOF_colorTarget",
-    "COLOR",
-    ["Enemy IFF","Color for enemy targets"],
-    "EagleEye 6DOF",
-    [1, 0, 0]
-] call CBA_fnc_addSetting;
+    params [["_targetList",[]],["_isUAV", false]];
 
-[
-    "XK_6DOF_colorMark",
-    "COLOR",
-    ["Marked Target","Color for marked targets"],
-    "EagleEye 6DOF",
-    [0.9, 0.4, 0.1]
-] call CBA_fnc_addSetting;
-
-[
-    "XK_6DOF_colorUnknown",
-    "COLOR",
-    ["Enemy IFF","Color for unknown targets"],
-    "EagleEye 6DOF",
-    [0.4, 0, 0.5]
-] call CBA_fnc_addSetting;
-
-[
-    "XK_6DOF_enableUnknown",
-    "CHECKBOX",
-    ["Enable Unknown Targets", "Marks unarmed targets as unknown instead of enemy."],
-    "EagleEye 6DOF",
-    true,
-    1
-] call CBA_fnc_addSetting;
-
-[
-    "XK_6DOF_gogglesList",
-    "EDITBOX",
-    ["Goggles Whitelist", "Classnames of goggles to enable 6DOF. Array/string format not required. Example: G_Goggles_VR, G_Tactical_Clear,..."],
-    "EagleEye 6DOF",
-    "G_Goggles_VR, G_Tactical_Clear, G_Tactical_Black, G_Tactical_camo, G_Tactical_yellow",
-    1
-] call CBA_fnc_addSetting;
-
-[
-    "XK_6DOF_headgearList",
-    "EDITBOX",
-    ["Headgear Whitelist", "Classnames of headgear to enable 6DOF. Array/string format not required. Example: Helmet1, Hat2, ..."],
-    "EagleEye 6DOF",
-    "H_HelmetSpecB, H_HelmetSpecB_blk, H_HelmetSpecB_paint2, H_HelmetSpecB_paint1, H_HelmetSpecB_sand, H_HelmetSpecB_snakeskin, H_HelmetB_Enh_tna_F, H_HelmetSpecB_wdl, H_HelmetHBK_headset_F, H_HelmetHBK_chops_F, H_HelmetHBK_ear_F",
-    1
-] call CBA_fnc_addSetting;
-
-[
-    "XK_6DOF_headgearToggle",
-    "CHECKBOX",
-    ["Enable 6DOF on Headgear", "Enable sensors to track targets on headgear. When disabled, goggles will both render and track targets."],
-    "EagleEye 6DOF",
-    true,
-    1
-] call CBA_fnc_addSetting;
-
-[
-    "XK_6DOF_Debug",
-    "CHECKBOX",
-    ["Enable Debug Mode", "Show debug information."],
-    "EagleEye 6DOF",
-    false,
-    1
-] call CBA_fnc_addSetting;
-
-//Initializes 6DOF for non-respawn starts
-if (hasInterface) then {
-    [
-        {(player == player)},
-        {
-            diag_log text "[6DOF] [Init] Player is initalized. Applying 6DOF event handlers.";
-            [player] call XK_6DOF_fnc_respawnEH;
-        },
-        nil,
-        60,
-        {}
-    ] call CBA_fnc_waitUntilAndExecute;
-};
-diag_log text "[6DOF] Finished initializing EagleEye 6DOF.";
-
-//Globally broadcasted targets calculated server-side
-if !(isServer) exitWith {};
-diag_log text "[6DOF] Server/Host detected. Running server-side target list PFH.";
-
-//Create global array for all 6DOF tracked targets
-[{
-    //6DOF Target List
-    private _canSee = allUnits select {_x getVariable ["XK_6DOF_enable",false]};
-    private _newTargetsList = [];
-    
-    if (count _canSee > 0) then {
-        private _targetsList = [];
-        {
-            private _list = _x getVariable ["XK_6DOF_List",[]];
-            if !(isNil "_list") then {_targetsList append _list};
-        } forEach _canSee;
-        
-        _newTargetsList = _targetsList arrayIntersect _targetsList;
-        missionNamespace setVariable ["XK_6DOF_Targets",_newTargetsList, true];
+    if !(_isUAV) then {
+        XK_6DOF_serverList append _targetList;
+        XK_6DOF_serverList = XK_6DOF_serverList arrayIntersect XK_6DOF_serverList;
+    } else {
+        XK_6DOF_serverListUAV append _targetList;
+        XK_6DOF_serverListUAV = XK_6DOF_serverListUAV arrayIntersect XK_6DOF_serverListUAV;
     };
+}] call CBA_fnc_addEventHandler;
 
-    //UAV Target List
-    private _canSeeUAV = allUnitsUAV select {_x getVariable ["XK_6DOF_enable", false]};
-    if (count _canSeeUAV isEqualTo 0) exitWith {};
-    private _uavTargetsList = [];
+//Updates missionNamespace for 6DOF player locally
+["XK_6DOF_EH_sendTargetList", {
 
-    {
-        private _listUAV = _x getVariable ["XK_6DOF_List",[]];
-        if (count _listUAV > 0) then {_uavTargetsList append _listUAV};
-    } forEach _canSeeUAV;
-
-    _uavTargetsList = [_uavTargetsList, {_this in _newTargetsList}] call CBA_fnc_reject;
-    _uavTargetsList arrayIntersect _uavTargetsList;
-
-    missionNamespace setVariable ["XK_6DOF_targetsUAV",_uavTargetsList, true];
-},1,[]] call CBA_fnc_addPerFrameHandler;
-
-//Global marked target list
-missionNamespace setVariable ["XK_6DOF_markedList", [], true];
+    _this params [["_targetList",[]],["_isUAV", false]];
+    private _namespace = if !(_isUAV) then {"XK_6DOF_Targets"} else {"XK_6DOF_TargetsUAV"};
+    missionNamespace setVariable [_namespace, _targetList];
+    
+}] call CBA_fnc_addEventHandler;
 
 //Global event to increment marked targets
 ["XK_6DOF_EH_targetIncr", {
@@ -181,7 +60,7 @@ missionNamespace setVariable ["XK_6DOF_markedList", [], true];
     } else {
 
         //If no targets marked, then pushback, else increment targets and update variables
-        if (count _list isEqualTo 0) then {
+        if (_list isEqualTo []) then {
             _list pushBack _target;
             missionNamespace setVariable ["XK_6DOF_markedList",_list];
             _target setVariable ["XK_6DOF_Marked",0, true];
@@ -199,4 +78,44 @@ missionNamespace setVariable ["XK_6DOF_markedList", [], true];
         };
     };
 }] call CBA_fnc_addEventHandler;
+diag_log text "[6DOF] Finished initializing EagleEye 6DOF.";
 
+//Globally broadcasted targets calculated server-side
+if !(isServer) exitWith {};
+diag_log text "[6DOF] Server/Host detected. Running server-side target list PFH.";
+
+[{
+    //6DOF Target List
+    private _canSee = allUnits select {_x getVariable ["XK_6DOF_enable",false]};
+    if (_canSee isEqualTo []) exitWith {};
+    if (XK_6DOF_serverList isNotEqualTo XK_6DOF_serverListOld) then {
+        ["XK_6DOF_EH_sendTargetList", [XK_6DOF_serverList], _canSee] call CBA_fnc_targetEvent;
+        XK_6DOF_serverListOld = XK_6DOF_serverList;
+        
+    };
+    XK_6DOF_serverList = [];
+    
+    //UAV Target List
+    private _canSeeUAV = allUnitsUAV select {_x getVariable ["XK_6DOF_enable", false]};
+    if (_canSeeUAV isEqualTo []) exitWith {};
+
+    //Filter UAV targets
+    private _uavTargetsList = XK_6DOF_serverListUAV;
+    {
+        private _index = _uavTargetsList find _x;
+        if (_index isNotEqualTo -1) then {
+            _uavTargetsList deleteAt _index;
+        };
+    }forEach XK_6DOF_serverList;
+
+    if (XK_6DOF_serverListUAV isNotEqualTo XK_6DOF_serverListUAVOld) then {
+        ["XK_6DOF_EH_sendTargetList", [_uavTargetsList, true], _canSee] call CBA_fnc_targetEvent;
+        XK_6DOF_serverListUAVOld = _uavTargetsList;
+        
+    };
+    XK_6DOF_serverListUAV = [];
+},1,[]] call CBA_fnc_addPerFrameHandler;
+
+//Marked target list
+missionNamespace setVariable ["XK_6DOF_markedList", []];
+diag_log text "[6DOF] Finished initializing EagleEye 6DOF server-side.";

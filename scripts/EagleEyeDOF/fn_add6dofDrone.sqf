@@ -44,7 +44,6 @@ _uav setVariable ["XK_6DOF_enable", true, true];
         _args params ["_uav","_searchDiam","_searchRng"];
 
         if (!alive _uav) exitWith {
-            _uav setVariable ["XK_6DOF_List", nil, true];
             diag_log text format ["[6DOF] %1's drone has been destroyed, exiting add6dofDrone.sqf.", name _uav];
             [_this select 1] call CBA_fnc_removePerFrameHandler;
         };
@@ -77,10 +76,13 @@ _uav setVariable ["XK_6DOF_enable", true, true];
         _targets = _targets select {
             ([_x,"VIEW",_uav] checkVisibility [_uav modelToWorldVisualWorld _camPos, eyePos _x] > 0 || [_x,"VIEW",_uav] checkVisibility [_uav modelToWorldVisualWorld _camPos, (_x modelToWorldVisualWorld (_x selectionPosition "spine2"))] > 0)
         };
-        _targets = flatten _targets;
-        _targetsFilter = _targets arrayIntersect _targets;
+        if (_targets isNotEqualTo []) then {
+            _targets = flatten _targets;
+            _targets = _targets arrayIntersect _targets;
+        };
 
-        _uav setVariable ["XK_6DOF_List", _targetsFilter, true];
+        //If list is unchanged, do not push to server
+        ["XK_6DOF_EH_addTargetList", [_targets, true]] call CBA_fnc_serverEvent;
     },
     1,[_uav, _searchDiam, _searchRng]
 ]call CBA_fnc_addPerFrameHandler;

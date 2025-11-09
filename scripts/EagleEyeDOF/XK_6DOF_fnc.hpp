@@ -9,5 +9,8 @@ class XK_6DOF {
         class enableOverlay {};
         class respawnEH {};
         class pointMark {};
+        class initPlayerLocal {};
+        class bonesLOD {};
+        class cbaSettings {};
     };
 };

@@ -25,11 +25,11 @@ diag_log text format ["[6DOF] [add6dof] Enabled 6DOF on %1 %2", name _unit, getP
 
 //Limit FOV on unit, limited for performance purposes
 if (_fov < 10) then {
-    diag_log text format ["[6DOF] [add6dof] FOV on %1 %2 is too narrow (%3), FOV set to 30.", name _unit, getPosATL _unit, _fov];
+    diag_log text format ["[6DOF] [add6dof] FOV on %1 %2 is too narrow (%3), FOV set to 10.", name _unit, getPosATL _unit, _fov];
     _fov = 10;  
 };
 if (_fov > 80) then {
-    diag_log text format ["[6DOF] [add6dof] FOV on %1 %2 is too wide (%3), FOV set to 180.", name _unit, getPosATL _unit, _fov];
+    diag_log text format ["[6DOF] [add6dof] FOV on %1 %2 is too wide (%3), FOV set to 80.", name _unit, getPosATL _unit, _fov];
     _fov = 80
 };
 
@@ -43,13 +43,11 @@ private _id = [
         if !(alive _unit) exitWith {
             diag_log text format ["[6DOF] [add6dof] %1 %2 has died. Exiting 6DOF PFH.",name _unit, getPosATL _unit];
             _unit setVariable ["XK_6DOF_enable", nil, true];
-            _unit setVariable ["XK_6DOF_List", nil, true];
             missionNamespace setVariable ["XK_6DOF_scanPFH", nil];
             [_this select 1] call CBA_fnc_removePerFrameHandler;
         };
         if !(_unit getVariable ["XK_6DOF_enable", false]) exitWith {
             diag_log text format ["[6DOF] [add6dof] 6DOF disabled on %1 %2. Exiting 6DOF PFH.",name _unit, getPosATL _unit];
-            _unit setVariable ["XK_6DOF_List", nil, true];
             missionNamespace setVariable ["XK_6DOF_scanPFH", nil];
             [_this select 1] call CBA_fnc_removePerFrameHandler;
         };
@@ -59,13 +57,18 @@ private _id = [
         {
             _targets append (if (isNull objectParent _x) then {[_x]} else {crew _x});
         } forEach _searchList;
+        
         _targets = _targets select {
             (((eyeDirection _unit) vectorDotProduct (eyePos _unit vectorFromTo eyePos _x)) >= cos (_fov/2)) &&
             (([objNull,"VIEW"] checkVisibility [eyePos _unit, eyePos _x] > 0.5) || ([objNull,"VIEW"] checkVisibility [eyePos _unit, (_x modelToWorldVisualWorld (_x selectionPosition "spine2"))] > 0.5))
         };
-        _targets = flatten _targets;
-        _targetsFilter = _targets arrayIntersect _targets;
-        _unit setVariable ["XK_6DOF_List", _targetsFilter, true];
+
+        if (_targets isNotEqualTo []) then {
+            _targets = flatten _targets;
+            _targets = _targets arrayIntersect _targets;
+        };
+        
+        ["XK_6DOF_EH_addTargetList", [_targets]] call CBA_fnc_serverEvent;
     },
     1,
     [_unit, _searchDist, _fov]

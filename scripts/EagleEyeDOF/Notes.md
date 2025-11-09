@@ -1,14 +1,29 @@
 
 # TO DO LIST
+Add helmet check to respawnEH
 Create method to assign drone as 6dof
 
+Show IFF icon
+   Friendly only
+   Enemy only
+   None
+   Fireteam only
+   All
+   NVG only
+
 ACE Menu?
-    Filter to DOF users only
+    Filter to DOF users only 
     Filter to Fireteam only
     Filter to all BLUFOR
-    Disable
+    
+    Disable 0
     Targets filter to fireteam only
     Targets filter to all 6dof
+
+Filter vehicles by type?
+ACE self interact not showing up?
+Desync in target spotting? Some not showing up despite looking at them?
+General server desync? Maybe reevaluate public variables?
 
 # NOTES
 
@@ -30,13 +45,13 @@ ACE Menu?
 
    ## Functions
 
-   - To force add EagleEye to AI (Not requied for players)
+   To force add EagleEye to AI (Not requied for players)
    - [_myUnit] call XK_6DOF_fnc_add6dof;
 
-   - To force add EagleEye to drone (designed for AR-2 Darters, other drones may not work as intended)
+   To force add EagleEye to drone (designed for AR-2 Darters, other drones may not work as intended)
    - [_myDrone] call XK_6DOF_fnc_add6dofDrone;
 
-   - Manually mark a unit to EagleEye users
+   Manually mark a unit to EagleEye users
    - ["XK_6DOF_EH_targetIncr", _myUnit] call CBA_fnc_serverEvent;
 
    ## Variables

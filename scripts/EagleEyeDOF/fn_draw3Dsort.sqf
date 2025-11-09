@@ -6,7 +6,8 @@
         addMissionEventHandler ["Draw3D", {call XK_6DOF_fnc_draw3Dsort}];
 */
 
-private _sidePlayer = side player;
+if (player getVariable ["ACE_isUnconscious", false]) exitWith {};
+if (XK_6DOF_filterNVG && (currentVisionMode player isEqualTo 0)) exitWith {};
 
 //Faction Colors
 private _colorAlly = XK_6DOF_colorAlly;
@@ -15,7 +16,7 @@ private _colorUnknown = XK_6DOF_colorUnknown;
 _colorAlly set [3,1];
 _colorTarget set [3,1];
 _colorUnknown set [3,1];
-
+private _sidePlayer = side player;
 
 //6DOF units
 private _6dofUnits = allUnits select {_x getVariable ["XK_6DOF_enable", false]};
@@ -29,6 +30,7 @@ private _targetLists = [
     missionNamespace getVariable ["XK_6DOF_Targets", []],
     missionNamespace getVariable ["XK_6DOF_targetsUAV", []]
 ];
+
 if ((count (_targetLists select 0) isEqualTo 0) && (count (_targetLists select 1) isEqualTo 0)) exitWith {};
 
 //HashMap Filter

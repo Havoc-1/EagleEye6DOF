@@ -4,7 +4,7 @@
 
 */
 
-//if item being changed is a type of goggles, exit all else
+
 params [["_player", player]];
 if !(isPlayer _player) exitWith {};
 private _ehCheck = _player getVariable ["XK_6dofRespawnEH", nil];
@@ -12,7 +12,10 @@ if !(isNil "_ehCheck") exitWith {};
 
 private _id1 = _player addEventHandler ["SlotItemChanged", {
     params ["_unit", "_name", "_slot", "_assigned", "_weapon"];
+
+    //if item being changed is a type of goggles, exit all else
     if !(_slot isEqualTo 603 || _name in XK_6DOF_gogglesList || _name isEqualTo "") exitWith {};
+    
     if !(_assigned) then {diag_log text format ["[6DOF] [SlotItemChanged EH] %1 has been unassigned from %2 %3",_name, name _unit, getPosATL _unit]};
     if (_assigned && (_name in XK_6DOF_gogglesList)) then {diag_log text format ["[6DOF] [SlotItemChanged EH] Goggles (%1) detected on %2 %3.",_name, name _unit, getPosATL _unit]};
     [_unit] call XK_6DOF_fnc_enableOverlay
@@ -21,7 +24,6 @@ private _id1 = _player addEventHandler ["SlotItemChanged", {
 private _id2 = _player addEventHandler ["Killed", {
     params ["_unit", "_killer", "_instigator", "_useEffects"];
     _unit setVariable ["XK_6DOF_enable", nil, true];
-    _unit setVariable ["XK_6DOF_List", nil, true];
     private _id = missionNamespace getVariable ["XK_6DOF_scanPFH", nil];
     if !(isNil "_id") then {
         [_id] call CBA_fnc_removePerFrameHandler;
