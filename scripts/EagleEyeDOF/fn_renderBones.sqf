@@ -50,13 +50,13 @@ if (_maxDistAllySkel > _maxDistAllies) then {_maxDistAllySkel = _maxDistAllies};
 
 //Init variables
 private _isUAVGunner = (UAVControl getConnectedUAV player) isEqualTo [player, "GUNNER"];
-private _sidePlayer = side player;
-private _sideTarget = side _target;
+private _isAlly = (side player) isEqualTo (side _target);
 private _playerDist = player distance _target;
 private _targetNum = _target getVariable ["XK_6DOF_Marked", nil];
 private _isMarked = isNil "_targetNum";
 private _visionMode = currentVisionMode player;
 private _isUncon = _target getVariable ["ACE_isUnconscious", false];
+private _is6dof = _target getVariable ["XK_6DOF_enable",false];
 
 //Exit conditions
 if (
@@ -66,7 +66,7 @@ if (
     (!alive _target && !_isMarked) ||
     (_target isEqualTo player && !_isUAVGunner) ||
     !(_target isKindOf "CAManBase") ||
-    ((_sideTarget isEqualTo _sidePlayer) && (_playerDist > _maxDistAllies)) ||
+    (_isAlly && (_playerDist > _maxDistAllies)) ||
     (XK_6DOF_filterNVG && _visionMode isEqualTo 0) ||
     (_playerDist > _maxDistTargets && !_isUAVGunner) ||
     (_playerDist < 2 && !_isUAVGunner) ||
@@ -74,99 +74,58 @@ if (
     (XK_6DOF_unconCheck && _isUncon && !_isMarked)
 ) exitWith {};
 
+//Self Filter Allies
+if (
+    (XK_6DOF_allyFilter isEqualTo 0 && _isAlly) || //Disabled
+    (XK_6DOF_allyFilter isEqualTo 1 && _isAlly && ((group player) isNotEqualTo (group _target))) || //Fireteam only
+    (XK_6DOF_allyFilter isEqualTo 2 && _isAlly && !_is6dof) //6DOF users only
+) exitWith {};
+
+//Self Filter Targets
+if (XK_6DOF_targetFilter isEqualTo 0 && !_isAlly) exitWith {}; //Disabled
+//Missing other target checks
+
 //Calculate dynamic bounding box width
-private _clamp = 0;
-private _stance = stance _target;
-switch (_stance) do {
-    case "STAND": {_clamp = 0.1};
-    case "CROUCH": {_clamp = 0.1};
-    case "PRONE": {_clamp = 0.8};
-    case "UNDEFINED": {_clamp = 0.8};
-};
-
-private _targetDir = getDir _target;
-private _dirToPlayer = _target getDir player;
-private _angleDiff = abs((_targetDir - _dirToPlayer + 540) % 360 - 180);
-private _result = _clamp * (1 - abs(cos(_angleDiff)));
-
-//Reference points to construct bounding box
-private _hOffset = 0.3;
-private _fOffset = 0.1;
-private _hSlantOffset = 0.2;
-private _baseWidth = 0.4;
-private _width = if (_stance isNotEqualTo "STAND") then {_baseWidth + _result} else {_baseWidth - _result};
-
+private _eyePos = eyePos _target;
 private _camPos = AGLToASL positionCameraToWorld [0,0,0];
 private _targetASL = getPosASL _target;
-
-//Direction from camera to target
-private _dirVec = vectorNormalized (_targetASL vectorDiff _camPos);
-private _rightVec = vectorNormalized (_dirVec vectorCrossProduct [0,0,1]);
-
-//Calculate bounding box points
-private _botL = _targetASL vectorAdd (_rightVec vectorMultiply (_width * -1));
-private _botLTemp = _targetASL vectorAdd (_rightVec vectorMultiply ((_width * -1) + _hSlantOffset));
-private _botR = _targetASL vectorAdd (_rightVec vectorMultiply  _width);
-private _eyePos = eyePos _target;
-private _eyeZ = _eyePos select 2;
-private _h = if (_eyeZ - _hSlantOffset < 0.1) then {0.1} else {_eyeZ};
-private _topZ = _h + _hOffset;
-private _topZslant = _topZ - _hSlantOffset;
-
-//Normalize height
-private _baseZ = (_targetASL select 2) - _fOffset;
-_botL set [2, _baseZ];
-_botR set [2, _baseZ];
-
-//Top positions
-private _topLslant = [_botL select 0, _botL select 1, _topZslant];
-private _topRslant = [_botLTemp select 0, _botLTemp select 1, _topZ];
-private _topR = [_botR select 0, _botR select 1, _topZ];
-
-// Construct final bounding box
-private _drawBox = [
-    [_botL, _topLslant],
-    [_topLslant, _topRslant],
-    [_topRslant, _topR],
-    [_topR, _botR],
-    [_botR, _botL]
-];
+private _hOffset = 0.3;
+private _drawBox = [_target, _eyePos, _camPos, _targetASL, _hOffset] call XK_6DOF_fnc_drawBox;
 
 //Init private variables
 private _multiply = 4;
 
 //Calculate render distance
 private _tempList = [];
-{
-    _tempList append [[_camPos, _x select 0, player, _target, true, 1, "FIRE"]];
-}forEach _drawBox;
+{_tempList append [[_camPos, _x select 0, player, _target, true, 1, "FIRE"]]} forEach _drawBox;
 private _intersect = (lineIntersectsSurfaces [_tempList]) select {_x isNotEqualTo []};
 
 if (count _intersect > 0) then {
     _intersect = _intersect apply {_camPos distance (_x select 0 select 0)};
-    private _newMultiply = ((_intersect call CBA_fnc_findMin) select 0) * 0.9;
+    private _newMultiply = ((_intersect call CBA_fnc_findMin) select 0) * 0.95;
     if (_newMultiply < _multiply) then {_multiply = _newMultiply};
 };
 
 //Draw bounding box position
-private _light = (getLighting) select 1;
+private _light = getLighting select 1;
 {
     private _dir1 = _camPos vectorFromTo (_x select 0);
     private _dir2 = _camPos vectorFromTo (_x select 1);
     private _pos1 = ASLToAGL (_camPos vectorAdd (_dir1 vectorMultiply _multiply));
     private _pos2 = ASLToAGL (_camPos vectorAdd (_dir2 vectorMultiply _multiply));
-
+    
     drawLine3D [_pos1, _pos2, _color, _lineBoxSize];
 
     //Draws lines again to fight opacity in low light environments. Not elegant but works.
     if (_light <= 0.4 && (_visionMode isEqualTo 0)) then {drawLine3D [_pos1, _pos2, _color, _lineBoxSize]};
+
 }forEach _drawBox;
 
 //Render IFF Icons
 if (_iffDisplay) then {
 
     //Targets
-    private _iffPosAGL = ASLToAGL [_targetASL select 0, _targetASL select 1, _eyeZ + _iffOffset + _hOffset];
+    private _iffPosAGL = ASLToAGL [_targetASL select 0, _targetASL select 1, (_eyePos select 2) + _iffOffset + _hOffset];
     private _fovAdjust = (getObjectFOV player - 0.75)/2;
     private _iffSizeAdjust = _iffSize - _fovAdjust;
     private _iffSizeUAV = _iffSize - _fovAdjust*2.5;
@@ -184,7 +143,6 @@ if (_iffDisplay) then {
     };
 
     //Increase marker size by 50% if target is 6DOF user or player marked
-    private _is6dof = _target getVariable ["XK_6DOF_enable",false];
     if (_is6dof) then { _iffSizeAdjust = _iffSizeAdjust * 2};
 
     if (!_isMarked) then {
@@ -212,8 +170,9 @@ if (_iffDisplay) then {
             private _name = _target getVariable ["XK_6DOF_Name",nil];
             if !(isNil "_name") then {_iffName = _name};
             private _tempText = 0.028;
-            //private _scale = linearConversion [10, 20, (_camPos distance _target), 0, 1, true];
-            //private _textSize = _tempText - (_scale * (_tempText - 0.008));
+            /* private _scale = linearConversion [10, 20, (_camPos distance _target), 0, 1, true];
+            private _textSize = _tempText - (_scale * (_tempText - 0.008)); */
+            private _topR = (_drawbox select 3 select 0);
             private _textAGL = ASLToAGL _topR;
             if (!_isMarked) then {_textSize = _tempText};
 
@@ -226,10 +185,10 @@ if (_iffDisplay) then {
                 "PuristaMedium", "right"
             ];
 
-            if ((_sidePlayer isNotEqualTo _sideTarget) && !_isMarked) then {
+            if (!_isAlly && !_isMarked) then {
                 _idText = format ["ID.%1", _targetNum];
                 
-                // Draw second line (ID text) dynamically below
+                //Draw second line (ID text) dynamically below
                 drawIcon3D [
                     "",
                     [1,1,1,1],
@@ -245,11 +204,7 @@ if (_iffDisplay) then {
 };
 
 //Render skeleton
-if (_render) then {
-    if (
-        (_sideTarget isEqualTo _sidePlayer) && (_playerDist > _maxDistAllySkel) ||
-        (_sideTarget isNotEqualTo _sidePlayer) && (_playerDist > _maxDistTargetSkel)
-    ) exitWith {};
+if (_render && (_isAlly && (_playerDist <= _maxDistAllySkel) || !_isAlly && (_playerDist <= _maxDistTargetSkel))) then {
     
     //Calculate bones based on LOD
     private _bones = [_target, _playerDist, _eyePos] call XK_6DOF_fnc_bonesLOD;
@@ -288,10 +243,10 @@ if (_render) then {
     
         //Debug bone visibility
         if (XK_6DOF_Debug && !_isUAVGunner) then {
-            private _visColor = [1,1,1,1];
+            private _visColor = [0,1,0,1];
             switch (true) do {
-                case (_vis < _visCap): {_visColor = [0,1,0,1]};
-                case (_vis < 0.3): {_visColor = [1,0,0,1]};
+                case (_vis < _visCap): {_visColor = [1,0,0,1]};
+                case (_vis < 0.3): {_visColor = [1,1,0,1]};
             };
 
             drawIcon3D [
@@ -314,21 +269,25 @@ if (_isUAVGunner && _target isNotEqualTo player) then {
     private _camPosSel = getText (_uavCfg >> "uavCameraGunnerPos");
     if (_camPosSel isEqualTo "") exitWith {};
     private _camPos = _uav selectionPosition _camPosSel;
-    private _visCheck1 = [_target,"VIEW",_uav] checkVisibility [_uav modelToWorldVisualWorld _camPos, eyePos _target];
-    private _visCheck2 = [_target,"VIEW",_uav] checkVisibility [_uav modelToWorldVisualWorld _camPos, (_target modelToWorldVisualWorld (_target selectionPosition "spine2"))];
+    private _spine = (_target modelToWorldVisualWorld (_target selectionPosition "spine2"));
+
+    private _visCheck1 = [_target,"FIRE"] checkVisibility [_uav modelToWorldVisualWorld _camPos, _eyePos];
+    private _visCheck2 = [_target,"VIEW"] checkVisibility [_uav modelToWorldVisualWorld _camPos, _eyePos];
+    private _visCheck3 = [_target,"FIRE"] checkVisibility [_uav modelToWorldVisualWorld _camPos, _spine];
+    private _visCheck4 = [_target,"VIEW"] checkVisibility [_uav modelToWorldVisualWorld _camPos, _spine];
 
     //Intersection points check to mark as 6dof target
     drawIcon3D [
         "\A3\ui_f\data\map\markers\military\dot_CA.paa",
         [1,1,0,1],
-        ASLToAGL (_target modelToWorldVisualWorld (_target selectionPosition "spine2")),
-        0.2, 0.2, 0, format ["VisDrone: %1", _visCheck2], 0, 0.02, "RobotoCondensed"
+        ASLToAGL _eyePos,
+        0.2, 0.2, 0, format ["Vis Fire/View: %1 | %2", _visCheck1, _visCheck2], 0, 0.02, "RobotoCondensed"
     ];
     drawIcon3D [
         "\A3\ui_f\data\map\markers\military\dot_CA.paa",
         [1,1,0,1],
-        ASLToAGL _eyePos,
-        0.2, 0.2, 0, format ["VisDrone: %1", _visCheck1], 0, 0.02, "RobotoCondensed"
+        ASLToAGL _spine,
+        0.2, 0.2, 0, format ["Vis Fire/View: %1 | %2", _visCheck3, _visCheck4], 0, 0.02, "RobotoCondensed"
     ];
 } else {
     //Bounding box corners debug

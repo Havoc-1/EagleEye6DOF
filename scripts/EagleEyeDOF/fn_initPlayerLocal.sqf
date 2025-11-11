@@ -69,7 +69,7 @@ params [["_player", player]];
             {player getVariable ["XK_6DOF_enable", false]}
         ] call ace_interact_menu_fnc_createAction;
 
-        private _targetFilterFireteam = ["XK_6DOF_selfAction_targetFilterFireteam","Fireteam Only","z\ace\addons\interaction\ui\team\team_white_ca.paa",
+        /* private _targetFilterFireteam = ["XK_6DOF_selfAction_targetFilterFireteam","Fireteam Only","z\ace\addons\interaction\ui\team\team_white_ca.paa",
             {
                 XK_6DOF_targetFilter = 1;
                 hintSilent format ["%1", XK_6DOF_targetFilter];
@@ -83,7 +83,7 @@ params [["_player", player]];
                 hintSilent format ["%1", XK_6DOF_targetFilter];
             },
             {player getVariable ["XK_6DOF_enable", false]}
-        ] call ace_interact_menu_fnc_createAction;
+        ] call ace_interact_menu_fnc_createAction; */
 
         private _targetFilterAll = ["XK_6DOF_selfAction_targetFilterAll","Show All","z\ace\addons\interaction\ui\team\team_management_ca.paa",
             {

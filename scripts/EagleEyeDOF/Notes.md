@@ -2,6 +2,7 @@
 # TO DO LIST
 Add helmet check to respawnEH
 Create method to assign drone as 6dof
+Fix vehicle hitbox drone scan
 
 Show IFF icon
    Friendly only

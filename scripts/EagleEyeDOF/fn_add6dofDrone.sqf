@@ -61,8 +61,9 @@ _uav setVariable ["XK_6DOF_enable", true, true];
 
         //Calculate vector positions
         private _camPos = _uav selectionPosition _camPosSel;
+        private _camModelToWorld = _uav modelToWorldVisualWorld _camPos;
         private _camDir = _camPos vectorAdd (_camPos vectorFromTo (_uav selectionPosition _camDirSel) vectorMultiply _searchRng);
-        private _points = lineIntersectsSurfaces [_uav modelToWorldVisualWorld _camPos, _uav modelToWorldVisualWorld _camDir, _uav];
+        private _points = lineIntersectsSurfaces [_camModelToWorld, _uav modelToWorldVisualWorld _camDir, _uav];
 
         //ATL Pos of ground intersect
         private _aimPosATL = ASLToATL (_points select 0 select 0);
@@ -73,9 +74,12 @@ _uav setVariable ["XK_6DOF_enable", true, true];
         {
             _targets append (if (isNull objectParent _x) then {[_x]} else {crew _x});
         } forEach _searchList;
-        _targets = _targets select {
-            ([_x,"VIEW",_uav] checkVisibility [_uav modelToWorldVisualWorld _camPos, eyePos _x] > 0 || [_x,"VIEW",_uav] checkVisibility [_uav modelToWorldVisualWorld _camPos, (_x modelToWorldVisualWorld (_x selectionPosition "spine2"))] > 0)
-        };
+        _targets = _targets select {(
+            [_x,"FIRE"] checkVisibility [_camModelToWorld, eyePos _x] > 0 ||
+            [_x,"FIRE"] checkVisibility [_camModelToWorld, (_x modelToWorldVisualWorld (_x selectionPosition "spine2"))] > 0 ||
+            [_x,"VIEW"] checkVisibility [_camModelToWorld, eyePos _x] > 0 ||
+            [_x,"VIEW"] checkVisibility [_camModelToWorld, (_x modelToWorldVisualWorld (_x selectionPosition "spine2"))] > 0
+        )};
         if (_targets isNotEqualTo []) then {
             _targets = flatten _targets;
             _targets = _targets arrayIntersect _targets;

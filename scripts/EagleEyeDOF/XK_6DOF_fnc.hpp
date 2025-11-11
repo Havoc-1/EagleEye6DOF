@@ -11,6 +11,7 @@ class XK_6DOF {
         class pointMark {};
         class initPlayerLocal {};
         class bonesLOD {};
+        class drawBox {};
         class cbaSettings {};
     };
 };
