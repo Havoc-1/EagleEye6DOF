@@ -17,7 +17,7 @@ switch (true) do {
             [[["leftshoulder","leftforearm"]]],
             [[["leftforearm","lefthand"]]]
         ];
-        
+
         { //Calculate positions for visibility check and add to bones array
             private _tempArray = _x select 0 select 0;
             private _bone1 = _target selectionPosition (_tempArray select 0);
@@ -31,43 +31,57 @@ switch (true) do {
                 AGLToASL (_target modelToWorld _bone2);
             };
             private _avgBoneASL = (_boneA_ASL vectorAdd _boneB_ASL) vectorMultiply 0.5;
-            _x insert [0, [_avgBoneASL]];
+            _x set [0, _avgBoneASL];
+            _x set [1, [[_boneA_ASL, _boneB_ASL]]];
+            
         }forEach _bones;
     };
     case (_playerDist < 50): { //LOD 1
         _bones = [
-            [[ //Right leg
+            ["rightleg", [
                 ["rightfoot","rightleg"],
                 ["rightleg","rightupleg"]
             ]],
-            [[ //Left leg
+            ["leftleg", [
                 ["leftfoot","leftleg"],
                 ["leftleg","leftupleg"]
             ]],
-            [[ //Right arm
+            ["rightforearm", [
                 ["rightshoulder","rightforearm"],
                 ["rightforearm","righthand"]
             ]],
-            [[ //Left arm
+            ["leftforearm", [
                 ["leftshoulder","leftforearm"],
                 ["leftforearm","lefthand"]
-            ]]
-        ];
-
-        { //Calculate positions for visibility check and add to bones array
-            private _avgBoneASL = AGLToASL (_target modelToWorld (_target selectionPosition (_x select 0 select 0 select 1)));
-            _x insert [0, [_avgBoneASL]];
-        }forEach _bones;
-
-        _bones append [ //Torso to head
-            [AGLToASL (_target modelToWorld (_target selectionPosition "spine3")), [
+            ]],
+            ["spine3", [
                 ["rightshoulder","leftshoulder"],
                 ["rightupleg","pelvis"],
                 ["leftupleg","pelvis"],
-                ["pelvis","head_hit"]
+                ["pelvis",_eyePos]
             ]]
         ];
 
+        {
+            private _visPosASL = AGLToASL (_target modelToWorld (_target selectionPosition (_x select 0)));
+            
+            private _pairs = _x select 1;
+            private _newPairsASL = _pairs apply {
+                private _a = _x select 0;
+                private _b = _x select 1;
+
+                private _aPos = AGLToASL (_target modelToWorld (_target selectionPosition _a));
+                private _bPos = if (_b isEqualType "") then {
+                    AGLToASL (_target modelToWorld (_target selectionPosition _b));
+                } else {
+                    _b;
+                };
+                [_aPos, _bPos];
+            };
+            
+            _x set [0, _visPosASL];
+            _x set [1, _newPairsASL];
+        }forEach _bones;
     };
     default { //LOD 2
         private _rLeg = AGLToASL (_target modelToWorld (_target selectionPosition "rightleg"));
@@ -87,13 +101,31 @@ switch (true) do {
                 ["rightshoulder","leftshoulder"],
                 ["rightupleg","pelvis"],
                 ["leftupleg","pelvis"],
-                ["pelvis","head_hit"],
+                ["pelvis",_eyePos],
                 ["rightshoulder","rightforearm"],
                 ["rightforearm","righthand"],
                 ["leftshoulder","leftforearm"],
                 ["leftforearm","lefthand"]
             ]]
         ];
+
+        {
+            private _pairs = _x select 1;
+            private _newPairsASL = _pairs apply {
+                private _a = _x select 0;
+                private _b = _x select 1;
+
+                private _aPos = AGLToASL (_target modelToWorld (_target selectionPosition _a));
+                private _bPos = if (_b isEqualType "") then {
+                    AGLToASL (_target modelToWorld (_target selectionPosition _b));
+                } else {
+                    _b;
+                };
+                [_aPos, _bPos];
+            };
+            
+            _x set [1, _newPairsASL];
+        }forEach _bones;
     };
 };
 

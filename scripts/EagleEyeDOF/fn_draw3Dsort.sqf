@@ -31,7 +31,7 @@ private _targetLists = [
     missionNamespace getVariable ["XK_6DOF_targetsUAV", []]
 ];
 
-if ((count (_targetLists select 0) isEqualTo 0) && (count (_targetLists select 1) isEqualTo 0)) exitWith {};
+if (((_targetLists select 0) isEqualTo []) && ((_targetLists select 1) isEqualTo [])) exitWith {};
 
 //HashMap Filter
 private _targets = createHashMapFromArray [

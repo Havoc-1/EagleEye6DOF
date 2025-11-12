@@ -123,44 +123,51 @@ private _light = getLighting select 1;
 
 //Render IFF Icons
 if (_iffDisplay) then {
+    if !(
+        (XK_6DOF_iffFilter isEqualTo 0) || //Disabled
+        (XK_6DOF_iffFilter isEqualTo 1 && !_isAlly) || //Allies only
+        (XK_6DOF_iffFilter isEqualTo 2 && _isAlly) || //Targets only
+        (XK_6DOF_iffFilter isEqualTo 3 && ((group player) isNotEqualTo (group _target))) //Fireteam only
+    ) then {
 
-    //Targets
-    private _iffPosAGL = ASLToAGL [_targetASL select 0, _targetASL select 1, (_eyePos select 2) + _iffOffset + _hOffset];
-    private _fovAdjust = (getObjectFOV player - 0.75)/2;
-    private _iffSizeAdjust = _iffSize - _fovAdjust;
-    private _iffSizeUAV = _iffSize - _fovAdjust*2.5;
-    private _colorMark = _color;
+        //Targets
+        private _iffPosAGL = ASLToAGL [_targetASL select 0, _targetASL select 1, (_eyePos select 2) + _iffOffset + _hOffset];
+        private _fovAdjust = (getObjectFOV player - 0.75)/2;
+        private _iffSizeAdjust = _iffSize - _fovAdjust;
+        private _iffSizeUAV = _iffSize - _fovAdjust*2.5;
+        private _colorMark = _color;
 
-    //Render enlarged IFF on self when operating UAV
-    if (_target isEqualTo player && _isUAVGunner) then {
-        drawIcon3D [
-            XK_6DOF_iconUAV,
-            _color,
-            _iffPosAGL,
-            _iffSizeUAV, _iffSizeUAV,
-            0, "", 0, 0.03, "TahomaB"
-        ];
-    };
+        //Render enlarged IFF on self when operating UAV
+        if (_target isEqualTo player && _isUAVGunner) then {
+            drawIcon3D [
+                XK_6DOF_iconUAV,
+                _color,
+                _iffPosAGL,
+                _iffSizeUAV, _iffSizeUAV,
+                0, "", 0, 0.03, "TahomaB"
+            ];
+        };
 
-    //Increase marker size by 50% if target is 6DOF user or player marked
-    if (_is6dof) then { _iffSizeAdjust = _iffSizeAdjust * 2};
+        //Increase marker size by 50% if target is 6DOF user or player marked
+        if (_is6dof) then { _iffSizeAdjust = _iffSizeAdjust * 2};
 
-    if (!_isMarked) then {
-        _iffSizeAdjust = _iffSizeAdjust * 2.5;
-        _colorMark = XK_6DOF_colorMark;
-        _colorMark set [3,1];
-    };
-    
-    if (_target isNotEqualTo player) then {
-        drawIcon3D [
-            _icon,
-            _colorMark,
-            _iffPosAGL,
-            _iffSizeAdjust, _iffSizeAdjust,
-            0, "", 0, 0.03, "TahomaB"
-        ];
-    };
-    
+        if (!_isMarked) then {
+            _iffSizeAdjust = _iffSizeAdjust * 2.5;
+            _colorMark = XK_6DOF_colorMark;
+            _colorMark set [3,1];
+        };
+        
+        if (_target isNotEqualTo player) then {
+            drawIcon3D [
+                _icon,
+                _colorMark,
+                _iffPosAGL,
+                _iffSizeAdjust, _iffSizeAdjust,
+                0, "", 0, 0.03, "TahomaB"
+            ];
+        };
+    };        
+
     //Show target name
     if (!XK_6DOF_nameTags || ((_playerDist > 20) && _isMarked) || _isUAVGunner) exitWith {};
     private _targetPos = worldToScreen (ASLToAGL _targetASL);
@@ -215,10 +222,10 @@ if (_render && (_isAlly && (_playerDist <= _maxDistAllySkel) || !_isAlly && (_pl
         private _boneList = _x select 1;
         private _vis = [player,"VIEW",_target] checkVisibility [_camPos, _visPos];
         private _visCap = 0.55;
-
+        
         if (_vis < _visCap) then {
             {
-                private _bone1 = _target selectionPosition (_x select 0);
+                /* private _bone1 = _target selectionPosition (_x select 0);
                 private _bone2 = _target selectionPosition (_x select 1);
                 private _boneA_ASL = AGLToASL (_target modelToWorld _bone1);
 
@@ -227,7 +234,10 @@ if (_render && (_isAlly && (_playerDist <= _maxDistAllySkel) || !_isAlly && (_pl
                     _eyePos;
                 } else {
                     AGLToASL (_target modelToWorld _bone2);
-                };
+                }; 
+                hintSilent format ["%1", _x]; */
+                private _boneA_ASL = _x select 0;
+                private _boneB_ASL = _x select 1;
 
                 private _dir1 = _camPos vectorFromTo _boneA_ASL;
                 private _dir2 = _camPos vectorFromTo _boneB_ASL;
@@ -240,7 +250,7 @@ if (_render && (_isAlly && (_playerDist <= _maxDistAllySkel) || !_isAlly && (_pl
                 if (_light <= 0.4 && (_visionMode isEqualTo 0)) then {drawLine3D [_pos1, _pos2, _color, _lineSize]};
             }forEach _boneList;
         };
-    
+
         //Debug bone visibility
         if (XK_6DOF_Debug && !_isUAVGunner) then {
             private _visColor = [0,1,0,1];
@@ -253,10 +263,33 @@ if (_render && (_isAlly && (_playerDist <= _maxDistAllySkel) || !_isAlly && (_pl
                 "\A3\ui_f\data\map\markers\military\dot_CA.paa",
                 _visColor,
                 ASLToAGL _visPos,
-                0.5, 0.5, 0, format ["Vis: %1", text (_vis toFixed 2)], 0, 0.02, "RobotoCondensed"
+                0.5, 0.5, 0, format ["%1", text (_vis toFixed 2)], 0, 0.02, "RobotoCondensed"
             ];
         };
     }forEach _bones;
+
+    if (XK_6DOF_Debug && !_isUAVGunner) then {
+        private _lod = 2;
+        switch (true) do {
+            case (_playerDist < 25): {_lod = 0};
+            case (_playerDist < 50): {_lod = 1};
+            default {};
+        };
+        private _eyePosAGL = ASLToAGL _eyePos;
+        private _visPosEye = [player,"VIEW",_target] checkVisibility [_camPos, _eyePos];
+        drawIcon3D [
+            "\A3\ui_f\data\map\markers\military\dot_CA.paa",
+            [0.8,0.8,1,1],
+            (_eyePosAGL vectorAdd [0,0,0.4]),
+            0.5, 0.5, 0, format ["LOD: %1 | Dist: %2m", _lod, round _playerDist], 2, 0.02, "RobotoCondensed"
+        ];
+        drawIcon3D [
+            "\A3\ui_f\data\map\markers\military\dot_CA.paa",
+            [1,1,1,1],
+            _eyePosAGL,
+            0.5, 0.5, 0, format ["eyePos: %1", text (_visPosEye toFixed 2)], 2, 0.02, "RobotoCondensed"
+        ];
+    };
 };
 
 //Debug visibility for drone and bounding box corners
@@ -296,7 +329,7 @@ if (_isUAVGunner && _target isNotEqualTo player) then {
             "\A3\ui_f\data\map\markers\military\dot_CA.paa",
             [1,1,1,1],
             _x,
-            0.5, 0.5, 0, format ["%1", _forEachIndex], 0, 0.03, "TahomaB"
+            0.5, 0.5, 0, format ["%1", _forEachIndex], 0, 0.02, "RobotoCondensed"
         ];
     }forEach (_drawBox apply {ASLToAGL (_x select 0)});
 };

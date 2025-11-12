@@ -5,6 +5,9 @@
     Arguments:
         0: Target <OBJECT> - Target unit to calculate box for.
         1: Eye Position <ARRAY> (Optional) - Eye position of target unit. Default is eyePos of target.
+        2: Camera Position <ARRAY> (Optional) - World position of the camera. Default is positionCameraToWorld [0,0,0] converted to ASL.
+        3: Target ASL Position <ARRAY> (Optional) - ASL position of target unit. Default is getPosASL of target.
+        4: Height Offset <SCALAR> (Optional) - Additional height offset for the box. Default is 0.3.
 
     Example:
         _drawbox = [man1, eyePos man1] call XK_6DOF_fnc_drawBox;
@@ -34,8 +37,6 @@ private _fOffset = 0.1;
 private _hSlantOffset = 0.2;
 private _baseWidth = 0.4;
 private _width = if (_stance isNotEqualTo "STAND") then {_baseWidth + _result} else {_baseWidth - _result};
-
-
 
 //Direction from camera to target
 private _dirVec = vectorNormalized (_targetASL vectorDiff _camPos);
