@@ -1,12 +1,14 @@
 /* 
     Author: [DMCL] Xephros
-    Init for 6DOF
+    Init for 6DOF.
 */
 
 private _cbaCheck = isClass(configFile >> "CfgPatches" >> "cba_main");
 private _aceCheck = isClass(configFile >> "CfgPatches" >> "ace_main");
-if !(_cbaCheck || _aceCheck) exitWith {diag_log text format ["[6DOF] Failed to initialize EagleEye 6DOF, dependencies not loaded. CBA_A3: %1, ACE: %2",_cbaCheck, _aceCheck]};
-diag_log text "[6DOF] Initializing EagleEye 6DOF.";
+if !(_cbaCheck || _aceCheck) exitWith {
+    [format ["Failed to initialize EagleEye 6DOF, dependencies not loaded. CBA_A3: %1, ACE: %2",_cbaCheck, _aceCheck], "Init"] call XK_6DOF_fnc_diaglog;
+};
+["Initializing EagleEye 6DOF.", "Init"] call XK_6DOF_fnc_diaglog;
 
 XK_6DOF_iconAlly = "\A3\ui_f\data\map\markers\nato\b_unknown.paa";         //IFF Icon for Friendly Targets
 XK_6DOF_iconEagleEye = "\A3\ui_f\data\map\markers\nato\b_inf.paa";         //IFF Icon for Friendly 6DOF Users
@@ -78,11 +80,11 @@ XK_6DOF_serverListUAVOld = [];
         };
     };
 }] call CBA_fnc_addEventHandler;
-diag_log text "[6DOF] Finished initializing EagleEye 6DOF.";
+["Finished initializing EagleEye 6DOF.", "Init",1] call XK_6DOF_fnc_diaglog;
 
 //Globally broadcasted targets calculated server-side
 if !(isServer) exitWith {};
-diag_log text "[6DOF] Server/Host detected. Running server-side target list PFH.";
+["Server/Host detected. Running server-side target list PFH.", "Init (Server)"] call XK_6DOF_fnc_diaglog;
 
 [{
     //6DOF Target List
@@ -118,4 +120,4 @@ diag_log text "[6DOF] Server/Host detected. Running server-side target list PFH.
 
 //Marked target list
 missionNamespace setVariable ["XK_6DOF_markedList", []];
-diag_log text "[6DOF] Finished initializing EagleEye 6DOF server-side.";
+["Finished initializing EagleEye 6DOF server-side.", "Init (Server)",1] call XK_6DOF_fnc_diaglog;

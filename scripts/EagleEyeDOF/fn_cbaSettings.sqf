@@ -106,5 +106,15 @@
     false,
     1
 ] call CBA_fnc_addSetting;
-diag_log text "[6DOF] Finished initializing EagleEye 6DOF CBA Settings.";
+
+[
+    "XK_6DOF_DebugRPT",
+    "CHECKBOX",
+    ["Detailed Diag_Log Reports", "Push optional information to diag_log RPT logs."],
+    "EagleEye 6DOF",
+    false,
+    0
+] call CBA_fnc_addSetting;
+
 XK_6DOF_initCbaSettings = true;
+["Finished initializing EagleEye 6DOF CBA Settings.", "cbaSettings",1] call XK_6DOF_fnc_diaglog;

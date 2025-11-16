@@ -1,3 +1,18 @@
+/* 
+    Author: [DMCL] Xephros
+    Calculate LOD for bones and return ASL positions.
+
+    Example:
+        _bones = [this] call XK_6DOF_fnc_bonesLOD;
+
+    Return Value:
+        Bones LOD List <ARRAY> - Array containing ASL positions of bones appropriate to LOD.
+            0: ASL Visibility Check position <ARRAY> - Position in ASL for checkVisibility.
+            1: Bone Pairs <ARRAY> - Array of ASL positions of start and end of each bone for drawLine3D.
+                0: Bone ASL Position Start <ARRAY> - ASL Position
+                1: Bone ASL Position End <ARRAY> - ASL Position
+*/
+
 params ["_target", ["_playerDist", _target distance player], ["_eyePos", eyePos _target]];
 
 private _bones = [];

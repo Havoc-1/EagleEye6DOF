@@ -1,3 +1,14 @@
+/* 
+    Author: [DMCL] Xephros
+    Function to globally mark a scanned target for EagleEye users.
+
+    Arguments:
+        0: Unit <OBJECT> - Target to be marked.
+        1: Gesture <STRING> - ACE Pointing Gesture to satisfy condition gate.
+
+    Return Value: None
+*/
+
 params ["_unit", "_gesture"];
 
 if (_gesture isNotEqualTo "ace_gestures_point") exitWith {};
@@ -33,4 +44,3 @@ _validTargets sort true;
 //If target is already marked, then unmark, otherwise mark target.
 private _markedUnit = _validTargets select 0 select 0;
 ["XK_6DOF_EH_targetIncr", _markedUnit] call CBA_fnc_serverEvent;
-

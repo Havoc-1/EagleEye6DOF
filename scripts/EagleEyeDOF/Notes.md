@@ -1,6 +1,9 @@
 
 # TO DO LIST
-Add helmet check to respawnEH
+
+Fix misaligned ID target text
+Fix dynamic scaling ID target text
+
 Create method to assign drone as 6dof
 Filter vehicles by type?
 
@@ -11,7 +14,7 @@ Filter vehicles by type?
    - Targets are identified by looking at targets with goggles/helmet equipped.
    - All allied EagleEye players share complete visibility of each other’s bounding boxes and skeletons.
    - Targets identified by one EagleEye player, including drones, are automatically synchronized with all other EagleEye players.
-   - Enemy skeletons are only visible when an EagleEye player has a direct line of sight to the target.
+   - Enemy skeletons are only visible when an EagleEye player has a direct line of sight to the target. Drones spots will not display skeletons.
    - EagleEye players can mark targets via ACE Pointing (Shift + `) at the tracked target.
    - Marked targets will incrementally update ID.
 

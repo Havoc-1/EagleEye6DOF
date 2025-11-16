@@ -5,7 +5,7 @@
     Arguments:
         0: Target <UNIT> - Enable 6DOF on unit.
         1: Search Distance <NUMBER> - Max distance to consider targets.
-        2: Field of View <NUMBER> - FOV for tracking targets.
+        2: Field of View <NUMBER> (Optional) - FOV for tracking targets. Min 10, Max 80. Default 40.
     
     Return Value: None
 
@@ -16,39 +16,47 @@
 
 params ["_unit",["_searchDist",XK_6DOF_scanList],["_fov", 40]];
 
-if (isNil "_unit" || isNull _unit) exitWith {diag_log text "[6DOF] [add6dof] Invalid unit selected. Exiting fn_add6dof.sqf"};
+if (isNil "_unit" || isNull _unit) exitWith {
+    ["Invalid unit selected. Exiting fn_add6dof.sqf", "add6dof",1] call XK_6DOF_fnc_diaglog;
+};
 
-if (_unit getVariable ["XK_6DOF_enable", false]) exitWith {diag_log text format ["[6DOF] [add6dof] %1 %2 is already has 6DOF enabled. exiting fn_add6dof.sqf.", name _unit, getPosATL _unit]};
+private _6dof = _unit getVariable ["XK_6DOF_enable", false];
+private _scanPFH = _unit getVariable ["XK_6DOF_scanPFH", nil];
+
+if (_6dof || !isNil "_scanPFH") exitWith {
+    [format ["%1 %2 is already has 6DOF enabled. exiting fn_add6dof.sqf.", name _unit, getPosATL _unit], "add6dof",1] call XK_6DOF_fnc_diaglog;
+};
 
 _unit setVariable ["XK_6DOF_enable", true, true];
-diag_log text format ["[6DOF] [add6dof] Enabled 6DOF on %1 %2", name _unit, getPosATL _unit];
+[format ["Enabled 6DOF on %1 %2", name _unit, getPosATL _unit], "add6dof",1] call XK_6DOF_fnc_diaglog;
 
 //Limit FOV on unit, limited for performance purposes
-if (_fov < 10) then {
-    diag_log text format ["[6DOF] [add6dof] FOV on %1 %2 is too narrow (%3), FOV set to 10.", name _unit, getPosATL _unit, _fov];
-    _fov = 10;  
-};
-if (_fov > 80) then {
-    diag_log text format ["[6DOF] [add6dof] FOV on %1 %2 is too wide (%3), FOV set to 80.", name _unit, getPosATL _unit, _fov];
-    _fov = 80
+if (_fov < 10 || _fov > 80) then {
+    [format ["6DOF FOV on %1 %2 out of range (%3), FOV clamped between 10 and 80.", name _unit, getPosATL _unit, _fov], "add6dof"] call XK_6DOF_fnc_diaglog;
+    _fov max 80 min 10;
 };
 
-diag_log text format ["[6DOF] [add6dof] Started 6DOF Target Scan PFH on %1 %2", name _unit, getPosATL _unit];
+[format ["Started 6DOF Target Scan PFH on %1 %2", name _unit, getPosATL _unit], "add6dof"] call XK_6DOF_fnc_diaglog;
 private _id = [
     {
         _args params ["_unit","_searchDist","_fov"];
+        private _PFHid = _unit getVariable ["XK_6DOF_scanPFH", nil];
         
         //Exit PFH checks
         if (isNull _unit || isNil "_unit") exitWith {[_this select 1] call CBA_fnc_removePerFrameHandler};
+        if (isNil "_PFHid" || _PFHid isNotEqualTo (_this select 1)) exitWith {
+            [format ["Mismatch PFH ID: %1 (Current) | %2 (New). Exiting current PFH on %3 %4.", _PFHid, (_this select 1), name _unit, getPosATL _unit], "add6dof",1] call XK_6DOF_fnc_diaglog;
+            [_this select 1] call CBA_fnc_removePerFrameHandler;
+        };
         if !(alive _unit) exitWith {
-            diag_log text format ["[6DOF] [add6dof] %1 %2 has died. Exiting 6DOF PFH.",name _unit, getPosATL _unit];
+            [format ["%1 %2 has died. Exiting 6DOF PFH.",name _unit, getPosATL _unit], "add6dof"] call XK_6DOF_fnc_diaglog;
             _unit setVariable ["XK_6DOF_enable", nil, true];
-            missionNamespace setVariable ["XK_6DOF_scanPFH", nil];
+            _unit setVariable ["XK_6DOF_scanPFH", nil];
             [_this select 1] call CBA_fnc_removePerFrameHandler;
         };
         if !(_unit getVariable ["XK_6DOF_enable", false]) exitWith {
-            diag_log text format ["[6DOF] [add6dof] 6DOF disabled on %1 %2. Exiting 6DOF PFH.",name _unit, getPosATL _unit];
-            missionNamespace setVariable ["XK_6DOF_scanPFH", nil];
+            [format ["6DOF disabled on %1 %2. Exiting 6DOF PFH.",name _unit, getPosATL _unit], "add6dof"] call XK_6DOF_fnc_diaglog;
+            _unit setVariable ["XK_6DOF_scanPFH", nil];
             [_this select 1] call CBA_fnc_removePerFrameHandler;
         };
 
@@ -74,4 +82,4 @@ private _id = [
     [_unit, _searchDist, _fov]
 ] call CBA_fnc_addPerFrameHandler;
 
-missionNamespace setVariable ["XK_6DOF_scanPFH", _id];
+_unit setVariable ["XK_6DOF_scanPFH", _id];

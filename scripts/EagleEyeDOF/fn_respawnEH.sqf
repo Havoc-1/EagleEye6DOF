@@ -6,37 +6,32 @@
 
 
 params [["_player", player]];
-if !(isPlayer _player) exitWith {};
-private _ehCheck = _player getVariable ["XK_6dofRespawnEH", nil];
-if !(isNil "_ehCheck") exitWith {};
+private _ehCheck = _player getVariable ["XK_6dofRespawnEH", false];
+if (_ehCheck || !isPlayer _player) exitWith {
+    [format ["6DOF EHs already applied to %1 %2, exiting fn_respawnEH.sqf.", name _player, getPosATL _player], "respawnEH", 1] call XK_6DOF_fnc_diaglog;
+};
 
-private _id1 = _player addEventHandler ["SlotItemChanged", {
+_player addEventHandler ["SlotItemChanged", {
     params ["_unit", "_name", "_slot", "_assigned", "_weapon"];
-
-    //if item being changed is a type of goggles, exit all else
-    if !(_slot isEqualTo 603 || _name in XK_6DOF_gogglesList || _name isEqualTo "") exitWith {};
-    
-    if !(_assigned) then {diag_log text format ["[6DOF] [SlotItemChanged EH] %1 has been unassigned from %2 %3",_name, name _unit, getPosATL _unit]};
-    if (_assigned && (_name in XK_6DOF_gogglesList)) then {diag_log text format ["[6DOF] [SlotItemChanged EH] Goggles (%1) detected on %2 %3.",_name, name _unit, getPosATL _unit]};
-    [_unit] call XK_6DOF_fnc_enableOverlay
+    if (_slot isNotEqualTo 603 && _slot isNotEqualTo 605) exitWith {};
+    [_unit] call XK_6DOF_fnc_enableOverlay;
 }];
 
-private _id2 = _player addEventHandler ["Killed", {
+_player addEventHandler ["Killed", {
     params ["_unit", "_killer", "_instigator", "_useEffects"];
     _unit setVariable ["XK_6DOF_enable", nil, true];
-    private _id = missionNamespace getVariable ["XK_6DOF_scanPFH", nil];
+    private _id = _unit getVariable ["XK_6DOF_scanPFH", nil];
     if !(isNil "_id") then {
         [_id] call CBA_fnc_removePerFrameHandler;
-        missionNamespace setVariable ["XK_6DOF_scanPFH", nil];
+        _unit setVariable ["XK_6DOF_scanPFH", nil];
     };
 }];
 
-private _id3 = _player addEventHandler ["GestureChanged", {
+_player addEventHandler ["GestureChanged", {
 	params ["_unit", "_gesture"];
     if (_gesture isNotEqualTo "ace_gestures_point") exitWith {};
     [_unit, _gesture] call XK_6DOF_fnc_pointMark;
 }];
 
-_player setVariable ["XK_6dofRespawnEH", [_id1, _id2, _id3]];
-
-diag_log text format ["[6DOF] [respawnEH] 6DOF EHs SlotItemChanged & Killed applied to %1 %2.", name _player, getPosATL _player];
+_player setVariable ["XK_6dofRespawnEH", true];
+[format ["6DOF EHs SlotItemChanged & Killed applied to %1 %2.", name _player, getPosATL _player], "respawnEH", 1] call XK_6DOF_fnc_diaglog;

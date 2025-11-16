@@ -13,5 +13,6 @@ class XK_6DOF {
         class bonesLOD {};
         class drawBox {};
         class cbaSettings {};
+        class diaglog {};
     };
 };

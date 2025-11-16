@@ -1,11 +1,18 @@
+/* 
+    Author: [DMCL] Xephros
+    CBA settings init.
+*/
+
 params [["_player", player]];
 
 [
     {
-        XK_6DOF_initCbaSettings
+        params ["_player"];
+        XK_6DOF_initCbaSettings && (_player == player) && (!isNull _player) && (!isNil "_player");
     },
     {
-        diag_log text "[6DOF] [initPlayerLocal] Player is initalized. Applying 6DOF event handlers and ACE actions.";
+        ["Player is initalized. Applying 6DOF event handlers and ACE actions.", "initPlayerLocal",1] call XK_6DOF_fnc_diaglog;
+        
         [_player] call XK_6DOF_fnc_enableOverlay;
         [_player] call XK_6DOF_fnc_respawnEH;
 
@@ -179,5 +186,6 @@ params [["_player", player]];
 
         //Toggle NVG
         ["CAManBase",1,["ACE_SelfActions", "XK_6DOF_selfAction_eagleEye"],_filterNVG, true] call ace_interact_menu_fnc_addActionToClass;
-    }
+    },
+    [_player]
 ] call CBA_fnc_waitUntilAndExecute;

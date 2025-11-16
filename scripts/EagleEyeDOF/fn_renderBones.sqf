@@ -22,8 +22,6 @@
 
     Example:
         [this] call XK_6DOF_fnc_renderBones;
-        [this, [0.05,0.05,1,1], "\A3\ui_f\data\map\markers\military\dot_CA.paa"] call XK_6DOF_fnc_renderBones;
-        [this, [0.05,0.05,1,1], "\A3\ui_f\data\map\markers\military\dot_CA.paa", true, true, 200, 2, 12, 3, 0.3, 0.3, nil] call XK_6DOF_fnc_renderBones;
 */
 
 params [
@@ -53,13 +51,12 @@ private _isUAVGunner = (UAVControl getConnectedUAV player) isEqualTo [player, "G
 private _isAlly = (side player) isEqualTo (side _target);
 private _playerDist = player distance _target;
 private _targetNum = _target getVariable ["XK_6DOF_Marked", nil];
-private _isMarked = isNil "_targetNum";
+private _isMarked = !(isNil "_targetNum");
 private _visionMode = currentVisionMode player;
 private _isUncon = _target getVariable ["ACE_isUnconscious", false];
 private _is6dof = _target getVariable ["XK_6DOF_enable",false];
 
-//Exit conditions
-if (
+if ( //Exit conditions
     isNil "_target" ||
     isNull _target ||
     !alive player ||
@@ -71,19 +68,16 @@ if (
     (_playerDist > _maxDistTargets && !_isUAVGunner) ||
     (_playerDist < 2 && !_isUAVGunner) ||
     !isNull curatorCamera ||
-    (XK_6DOF_unconCheck && _isUncon && !_isMarked)
-) exitWith {};
+    (!XK_6DOF_unconCheck && _isUncon && !_isMarked) ||
 
-//Self Filter Allies
-if (
+    //Self Filter Allies
     (XK_6DOF_allyFilter isEqualTo 0 && _isAlly) || //Disabled
     (XK_6DOF_allyFilter isEqualTo 1 && _isAlly && ((group player) isNotEqualTo (group _target))) || //Fireteam only
-    (XK_6DOF_allyFilter isEqualTo 2 && _isAlly && !_is6dof) //6DOF users only
-) exitWith {};
+    (XK_6DOF_allyFilter isEqualTo 2 && _isAlly && !_is6dof) || //6DOF users only
 
-//Self Filter Targets
-if (XK_6DOF_targetFilter isEqualTo 0 && !_isAlly) exitWith {}; //Disabled
-//Missing other target checks
+    //Self Filter Allies
+    XK_6DOF_targetFilter isEqualTo 0 && !_isAlly //Disabled
+) exitWith {};
 
 //Calculate dynamic bounding box width
 private _eyePos = eyePos _target;
@@ -151,7 +145,7 @@ if (_iffDisplay) then {
         //Increase marker size by 50% if target is 6DOF user or player marked
         if (_is6dof) then { _iffSizeAdjust = _iffSizeAdjust * 2};
 
-        if (!_isMarked) then {
+        if (_isMarked) then {
             _iffSizeAdjust = _iffSizeAdjust * 2.5;
             _colorMark = XK_6DOF_colorMark;
             _colorMark set [3,1];
@@ -169,7 +163,7 @@ if (_iffDisplay) then {
     };        
 
     //Show target name
-    if (!XK_6DOF_nameTags || ((_playerDist > 20) && _isMarked) || _isUAVGunner) exitWith {};
+    if (!XK_6DOF_nameTags || ((_playerDist > 20) && !_isMarked) || _isUAVGunner) exitWith {};
     private _targetPos = worldToScreen (ASLToAGL _targetASL);
 
     if (count _targetPos > 1) then {
@@ -181,7 +175,7 @@ if (_iffDisplay) then {
             private _textSize = _tempText - (_scale * (_tempText - 0.008)); */
             private _topR = (_drawbox select 3 select 0);
             private _textAGL = ASLToAGL _topR;
-            if (!_isMarked) then {_textSize = _tempText};
+            if (_isMarked) then {_textSize = _tempText};
 
             drawIcon3D ["",
                 [1,1,1,1],
@@ -192,10 +186,9 @@ if (_iffDisplay) then {
                 "PuristaMedium", "right"
             ];
 
-            if (!_isAlly && !_isMarked) then {
+            //Draw second line (ID text) dynamically below
+            if (!_isAlly && _isMarked) then {
                 _idText = format ["ID.%1", _targetNum];
-                
-                //Draw second line (ID text) dynamically below
                 drawIcon3D [
                     "",
                     [1,1,1,1],
@@ -216,8 +209,7 @@ if (_render && (_isAlly && (_playerDist <= _maxDistAllySkel) || !_isAlly && (_pl
     //Calculate bones based on LOD
     private _bones = [_target, _playerDist, _eyePos] call XK_6DOF_fnc_bonesLOD;
 
-    //drawLine3D for each bone set
-    {
+    {//drawLine3D for each bone set
         private _visPos = _x select 0;
         private _boneList = _x select 1;
         private _vis = [player,"VIEW",_target] checkVisibility [_camPos, _visPos];
@@ -225,17 +217,6 @@ if (_render && (_isAlly && (_playerDist <= _maxDistAllySkel) || !_isAlly && (_pl
         
         if (_vis < _visCap) then {
             {
-                /* private _bone1 = _target selectionPosition (_x select 0);
-                private _bone2 = _target selectionPosition (_x select 1);
-                private _boneA_ASL = AGLToASL (_target modelToWorld _bone1);
-
-                //Bone position adjustment for target head
-                private _boneB_ASL = if ((_x select 1) isEqualTo "head_hit") then {
-                    _eyePos;
-                } else {
-                    AGLToASL (_target modelToWorld _bone2);
-                }; 
-                hintSilent format ["%1", _x]; */
                 private _boneA_ASL = _x select 0;
                 private _boneB_ASL = _x select 1;
 
@@ -268,6 +249,7 @@ if (_render && (_isAlly && (_playerDist <= _maxDistAllySkel) || !_isAlly && (_pl
         };
     }forEach _bones;
 
+    //Debug LOD & EyePos
     if (XK_6DOF_Debug && !_isUAVGunner) then {
         private _lod = 2;
         switch (true) do {
@@ -323,8 +305,8 @@ if (_isUAVGunner && _target isNotEqualTo player) then {
         0.2, 0.2, 0, format ["Vis Fire/View: %1 | %2", _visCheck3, _visCheck4], 0, 0.02, "RobotoCondensed"
     ];
 } else {
-    //Bounding box corners debug
-    {
+
+    {//Bounding box corners debug
         drawIcon3D [
             "\A3\ui_f\data\map\markers\military\dot_CA.paa",
             [1,1,1,1],
