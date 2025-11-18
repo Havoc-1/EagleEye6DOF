@@ -1,9 +1,6 @@
 
 # TO DO LIST
 
-Fix misaligned ID target text
-Fix dynamic scaling ID target text
-
 Create method to assign drone as 6dof
 Filter vehicles by type?
 

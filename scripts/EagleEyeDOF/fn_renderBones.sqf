@@ -170,21 +170,23 @@ if (_iffDisplay) then {
         if ((((_targetPos select 0) > 0) && ((_targetPos select 0) < 1) && ((_targetPos select 1) > 0) && ((_targetPos select 1) < 1))) then {
             private _name = _target getVariable ["XK_6DOF_Name",nil];
             if !(isNil "_name") then {_iffName = _name};
-            private _tempText = 0.028;
-            private _scale = linearConversion [2, _maxDistTargets, (_camPos distance _target), 0.01, 2.5, true];
-            private _scaleFov = linearConversion [0.75, 0.25, (getObjectFOV player), 0,0.12, true];
-            //[format ["%1", _scale - _scaleFov], "renderBones", 3] call XK_6DOF_fnc_diaglog;
-            //private _textSize = _tempText - (_scale * (_tempText - 0.008));
+            private _textSize = 0.028;
             private _topR = (_drawbox select 3 select 0);
             private _textAGL = ASLToAGL _topR;
-            //if (_isMarked) then {_textSize = _tempText};
+
+            //Calculate line break distance for ID text
+            private _idPos = worldToScreen _textAGL;
+            _idPos set [1,(_idPos select 1)+0.02];
+            private _idPosVecDir = screenToWorldDirection _idPos;
+            private _idTextASL = _camPos vectorAdd (_idPosVecDir vectorMultiply _multiply);
+            private _idTextAGL = ASLToAGL _idTextASL;
 
             drawIcon3D ["",
                 [1,1,1,1],
                 _textAGL,
                 0.3, 0,
                 0, _iffName, 2,
-                _tempText,
+                _textSize,
                 "PuristaMedium", "right"
             ];
 
@@ -194,10 +196,10 @@ if (_iffDisplay) then {
                 drawIcon3D [
                     "",
                     [1,1,1,1],
-                    _textAGL vectorAdd [0, 0, (_scale - _scaleFov)*-1],
+                    _idTextAGL,
                     0.3, 0,
                     0, _idText, 2,
-                    _tempText,
+                    _textSize,
                     "PuristaMedium", "right"
                 ];
             };
@@ -252,28 +254,29 @@ if (_render && (_isAlly && (_playerDist <= _maxDistAllySkel) || !_isAlly && (_pl
     }forEach _bones;
 
     //Debug LOD & EyePos
-    if (XK_6DOF_Debug && !_isUAVGunner) then {
-        private _lod = 2;
-        switch (true) do {
-            case (_playerDist < 25): {_lod = 0};
-            case (_playerDist < 50): {_lod = 1};
-            default {};
-        };
-        private _eyePosAGL = ASLToAGL _eyePos;
-        private _visPosEye = [player,"VIEW",_target] checkVisibility [_camPos, _eyePos];
-        drawIcon3D [
-            "\A3\ui_f\data\map\markers\military\dot_CA.paa",
-            [0.8,0.8,1,1],
-            (_eyePosAGL vectorAdd [0,0,0.4]),
-            0.5, 0.5, 0, format ["LOD: %1 | Dist: %2m", _lod, round _playerDist], 2, 0.02, "RobotoCondensed"
-        ];
-        drawIcon3D [
-            "\A3\ui_f\data\map\markers\military\dot_CA.paa",
-            [1,1,1,1],
-            _eyePosAGL,
-            0.5, 0.5, 0, format ["eyePos: %1", text (_visPosEye toFixed 2)], 2, 0.02, "RobotoCondensed"
-        ];
+    if (!XK_6DOF_Debug || !XK_6DOF_Debug && _isUAVGunner) exitWith {};
+    private _lod = 2;
+
+    switch (true) do {
+        case (_playerDist < 25): {_lod = 0};
+        case (_playerDist < 50): {_lod = 1};
+        default {};
     };
+    private _eyePosAGL = ASLToAGL _eyePos;
+    private _visPosEye = [player,"VIEW",_target] checkVisibility [_camPos, _eyePos];
+
+    drawIcon3D [
+        "\A3\ui_f\data\map\markers\military\dot_CA.paa",
+        [0.8,0.8,1,1],
+        (_eyePosAGL vectorAdd [0,0,0.4]),
+        0.5, 0.5, 0, format ["LOD: %1 | Dist: %2m", _lod, round _playerDist], 2, 0.02, "RobotoCondensed"
+    ];
+    drawIcon3D [
+        "\A3\ui_f\data\map\markers\military\dot_CA.paa",
+        [1,1,1,1],
+        _eyePosAGL,
+        0.5, 0.5, 0, format ["eyePos: %1", text (_visPosEye toFixed 2)], 2, 0.02, "RobotoCondensed"
+    ];
 };
 
 //Debug visibility for drone and bounding box corners
