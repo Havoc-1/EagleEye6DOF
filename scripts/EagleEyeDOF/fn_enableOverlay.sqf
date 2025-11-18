@@ -16,9 +16,9 @@ private _hasHeadgear = false;
 private _headgear = headgear _unit;
 private _PFHid = _unit getVariable ["XK_6DOF_scanPFH", nil];
 private _6dof = _unit getVariable ["XK_6DOF_enable", false];
-if !(isNil "_PFHid") then {
+/* if !(isNil "_PFHid") then {
     [format ["ScanPFH (%1) removed for %2 %3", name _unit, getPosATL _unit], "enableOverlay",1] call XK_6DOF_fnc_diaglog;
-};
+}; */
 
 if (XK_6DOF_headgearToggle) then {
     

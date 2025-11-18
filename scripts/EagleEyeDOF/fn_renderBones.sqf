@@ -171,11 +171,13 @@ if (_iffDisplay) then {
             private _name = _target getVariable ["XK_6DOF_Name",nil];
             if !(isNil "_name") then {_iffName = _name};
             private _tempText = 0.028;
-            /* private _scale = linearConversion [10, 20, (_camPos distance _target), 0, 1, true];
-            private _textSize = _tempText - (_scale * (_tempText - 0.008)); */
+            private _scale = linearConversion [2, _maxDistTargets, (_camPos distance _target), 0.01, 2.5, true];
+            private _scaleFov = linearConversion [0.75, 0.25, (getObjectFOV player), 0,0.12, true];
+            //[format ["%1", _scale - _scaleFov], "renderBones", 3] call XK_6DOF_fnc_diaglog;
+            //private _textSize = _tempText - (_scale * (_tempText - 0.008));
             private _topR = (_drawbox select 3 select 0);
             private _textAGL = ASLToAGL _topR;
-            if (_isMarked) then {_textSize = _tempText};
+            //if (_isMarked) then {_textSize = _tempText};
 
             drawIcon3D ["",
                 [1,1,1,1],
@@ -192,7 +194,7 @@ if (_iffDisplay) then {
                 drawIcon3D [
                     "",
                     [1,1,1,1],
-                    _textAGL vectorAdd [0, 0, -0.08],
+                    _textAGL vectorAdd [0, 0, (_scale - _scaleFov)*-1],
                     0.3, 0,
                     0, _idText, 2,
                     _tempText,

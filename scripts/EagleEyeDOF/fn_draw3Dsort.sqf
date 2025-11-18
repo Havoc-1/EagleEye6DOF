@@ -16,70 +16,29 @@ private _colorUnknown = XK_6DOF_colorUnknown;
 _colorAlly set [3,1];
 _colorTarget set [3,1];
 _colorUnknown set [3,1];
+
 private _sidePlayer = side player;
+private _sortedList = [_sidePlayer] call XK_6DOF_fnc_sortList;
+_sortedList params ["_listAllies","_listEnemy","_listEnemyUAV","_listUnknown","_listUnknownUAV"];
 
 //6DOF units
 private _6dofUnits = allUnits select {_x getVariable ["XK_6DOF_enable", false]};
 if (count _6dofUnits isEqualTo 0) exitWith {};
 {
-    if (side _x isEqualTo _sidePlayer) then {[_x,_colorAlly,XK_6DOF_iconEagleEye,true,true,name _x] call XK_6DOF_fnc_renderBones}
+    if (side _x isEqualTo side player) then {[_x,_colorAlly,XK_6DOF_iconEagleEye,true,true,name _x] call XK_6DOF_fnc_renderBones}
 } forEach _6dofUnits;
 
-// Get globally tracked targets
-private _targetLists = [
-    missionNamespace getVariable ["XK_6DOF_Targets", []],
-    missionNamespace getVariable ["XK_6DOF_targetsUAV", []]
-];
-
-if (((_targetLists select 0) isEqualTo []) && ((_targetLists select 1) isEqualTo [])) exitWith {};
-
-//HashMap Filter
-private _targets = createHashMapFromArray [
-    ["ally", []],
-    ["enemy", []],
-    ["enemyUAV", []],
-    ["unknown", []],
-    ["unknownUAV", []]
-];
-
-//Categorise targets
-{
-    private _isUAV = (_forEachIndex isEqualTo 1);
-    {
-        private _unit = _x;
-        private _side = side _unit;
-        private _is6DOF = _unit getVariable ["XK_6DOF_enable", false];
-        private _armed = currentWeapon _unit isNotEqualTo "";
-
-        if (!_is6DOF) then {
-            if (_side isEqualTo _sidePlayer) then {
-                (_targets get "ally") pushBack _unit;
-            } else {
-                if (XK_6DOF_enableUnknown) then {
-                    if (_armed) then {
-                        (_targets get (["enemy","enemyUAV"] select _isUAV)) pushBack _unit;
-                    } else {
-                        (_targets get (["unknown","unknownUAV"] select _isUAV)) pushBack _unit;
-                    };
-                } else {
-                    if (_armed) then {
-                        (_targets get (["enemy","enemyUAV"] select _isUAV)) pushBack _unit;
-                    };
-                };
-            };
-        };
-    } forEach _x;
-} forEach _targetLists;
-
 //Render allies
-{[_x,_colorAlly,XK_6DOF_iconAlly,false,true,"Allied"] call XK_6DOF_fnc_renderBones} forEach (_targets get "ally");
+{[_x,_colorAlly,XK_6DOF_iconAlly,false,true,"Allied"] call XK_6DOF_fnc_renderBones} forEach _listAllies;
 
 //Render enemies
-{[_x,_colorTarget,XK_6DOF_iconEnemy] call XK_6DOF_fnc_renderBones} forEach (_targets get "enemy");
-{[_x,_colorTarget,XK_6DOF_iconEnemy,false] call XK_6DOF_fnc_renderBones} forEach (_targets get "enemyUAV");
+{[_x,_colorTarget,XK_6DOF_iconEnemy] call XK_6DOF_fnc_renderBones} forEach _listEnemy;
+{[_x,_colorTarget,XK_6DOF_iconEnemy,false] call XK_6DOF_fnc_renderBones} forEach _listEnemyUAV;
 
 //Render unknowns (if enabled)
 if (XK_6DOF_enableUnknown) then {
-    {[_x,_colorUnknown,XK_6DOF_iconUnknown] call XK_6DOF_fnc_renderBones} forEach (_targets get "unknown");
-    {[_x,_colorUnknown,XK_6DOF_iconUnknown,false] call XK_6DOF_fnc_renderBones} forEach (_targets get "unknownUAV");
+    {[_x,_colorUnknown,XK_6DOF_iconUnknown] call XK_6DOF_fnc_renderBones} forEach _listUnknown;
+    {[_x,_colorUnknown,XK_6DOF_iconUnknown,false] call XK_6DOF_fnc_renderBones} forEach _listUnknownUAV;
 };
+
+//[format ["%1, %2, %3, %4, %5", count _listAllies, count _listEnemy, count _listEnemyUAV, count _listUnknown, count _listUnknownUAV], "draw3DSort", 3] call XK_6DOF_fnc_diaglog;

@@ -8,11 +8,13 @@ class XK_6DOF {
         class draw3DSort {};
         class enableOverlay {};
         class respawnEH {};
+        class initEH {};
         class pointMark {};
         class initPlayerLocal {};
         class bonesLOD {};
         class drawBox {};
         class cbaSettings {};
         class diaglog {};
+        class sortList {};
     };
 };
