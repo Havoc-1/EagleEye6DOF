@@ -79,6 +79,8 @@ if ( //Exit conditions
     XK_6DOF_targetFilter isEqualTo 0 && !_isAlly //Disabled
 ) exitWith {};
 
+
+
 //Calculate dynamic bounding box width
 private _eyePos = eyePos _target;
 private _camPos = AGLToASL positionCameraToWorld [0,0,0];

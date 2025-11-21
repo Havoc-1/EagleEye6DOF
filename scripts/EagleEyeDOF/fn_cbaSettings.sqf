@@ -22,6 +22,15 @@
 ] call CBA_fnc_addSetting;
 
 [
+    "XK_6DOF_iffOpacity",
+    "SLIDER",
+    ["IFF Icon Opacity","Opacity for IFF icons above targets."],
+    "EagleEye 6DOF",
+    [0, 1, 0.9, 0, true],
+    0
+] call CBA_fnc_addSetting;
+
+[
     "XK_6DOF_colorAlly",
     "COLOR",
     ["Friendly IFF","Color for friendly targets"],

@@ -6,6 +6,7 @@
         0: Target <UNIT> - Enable 6DOF on drone.
         1: Search diameter <NUMBER> (Optional) - Max diameter to consider targets on turret view.
         2: Search Range <NUMBER> (Optional) - Max distance to consider targets on turret view.
+        3: Limit to AR-2 Darters Only <BOOL> (Optional) - Only allow AR-2 Darters to have 6DOF capabilities. For debugging.
     
     Return Value: None
 
@@ -14,27 +15,29 @@
         [this, 25, 500] call XK_6DOF_fnc_add6dofDrone;
 */
 
-params ["_uav",["_searchDiam",30],["_searchRng", 1000]];
+params ["_uav",["_searchDiam",30],["_searchRng", 1000],["_ar2Only", true]];
 
-if (_uav getVariable ["XK_6DOF_enable", false]) exitWith {diag_log text format ["[6DOF] %1 %2 is already has 6DOF enabled. exiting add6dofDrone.sqf.", name _uav, getPosATL _uav]};
+if (_uav getVariable ["XK_6DOF_enable", false]) exitWith {
+    [format ["%1 %2 is already has 6DOF enabled. Exiting function.", name _uav, getPosATL _uav], "add6dofDrone",1] call XK_6DOF_fnc_diaglog;
+};
 
 private _searchDiamCap = 200;
 private _searchRngCap = 1500;
 
 if (isNil "_uav" || isNull _uav) exitWith {
-    diag_log text "[6DOF] Invalid unit selected. Exiting fn_add6dofDrone.sqf";
+    ["Invalid unit selected. Exiting function.", "add6dofDrone"] call XK_6DOF_fnc_diaglog;
 };
-if !(_uav isKindOf "UAV_01_Base_F") exitWith {
-    diag_log text format ["[6DOF] %1's drone %2 is not an AR-2 Darter, exiting add6dofDrone.sqf.", name _uav, getPosATL _uav];
+if (_ar2Only && !(_uav isKindOf "UAV_01_Base_F")) exitWith {
+    [format ["%1's drone %2 is not an AR-2 Darter, exiting add6dofDrone.sqf.", name _uav, getPosATL _uav], "add6dofDrone"] call XK_6DOF_fnc_diaglog;
 };
 
 //Cap for gameplay balance and performance, units beyond this range may have undesired results
 if (_searchDiam > _searchDiamCap) then {
-    diag_log text format ["[6DOF] %1's drone %2 search diameter too large (%3), setting search diameter to %4.", name _uav, getPosATL _uav, _searchDiam, _searchDiamCap];
+    [format ["%1's drone %2 search diameter too large (%3), setting search diameter to %4.", name _uav, getPosATL _uav, _searchDiam, _searchDiamCap], "add6dofDrone"] call XK_6DOF_fnc_diaglog;
     _searchDiam = _searchDiamCap;
 };
 if (_searchRng > _searchRngCap) then {
-    diag_log text format ["[6DOF] %1's drone %2 search range too long (%3), setting search range to %4.", name _uav, getPosATL _uav, _searchRng, _searchRngCap];
+    [format ["%1's drone %2 search range too long (%3), setting search range to %4.", name _uav, getPosATL _uav, _searchRng, _searchRngCap], "add6dofDrone"] call XK_6DOF_fnc_diaglog;
     _searchRng = _searchRngCap;
 };
 
@@ -44,7 +47,7 @@ _uav setVariable ["XK_6DOF_enable", true, true];
         _args params ["_uav","_searchDiam","_searchRng"];
 
         if (!alive _uav) exitWith {
-            diag_log text format ["[6DOF] %1's drone has been destroyed, exiting add6dofDrone.sqf.", name _uav];
+            [format ["%1's drone has been destroyed, exiting function.", name _uav], "add6dofDrone"] call XK_6DOF_fnc_diaglog;
             [_this select 1] call CBA_fnc_removePerFrameHandler;
         };
         
@@ -54,7 +57,7 @@ _uav setVariable ["XK_6DOF_enable", true, true];
         private _uavCfg = configFile >> "CfgVehicles" >> typeOf _uav;
         private _camPosSel = getText (_uavCfg >> "uavCameraGunnerPos");
         if (_camPosSel isEqualTo "") exitWith {
-            diag_log text format ["[6DOF] %1's drone %2 does not have a valid turret/gunner, exiting add6dofDrone.sqf.", name _uav, getPosATL _uav];
+            [format ["%1's drone %2 does not have a valid turret/gunner, exiting function.", name _uav, getPosATL _uav], "add6dofDrone"] call XK_6DOF_fnc_diaglog;
             [_this select 1] call CBA_fnc_removePerFrameHandler;
         };
         private _camDirSel = getText (_uavCfg >> "uavCameraGunnerDir");
@@ -74,12 +77,14 @@ _uav setVariable ["XK_6DOF_enable", true, true];
         {
             _targets append (if (isNull objectParent _x) then {[_x]} else {crew _x});
         } forEach _searchList;
-        _targets = _targets select {(
-            [_x,"FIRE"] checkVisibility [_camModelToWorld, eyePos _x] > 0 ||
-            [_x,"FIRE"] checkVisibility [_camModelToWorld, (_x modelToWorldVisualWorld (_x selectionPosition "spine2"))] > 0 ||
-            [_x,"VIEW"] checkVisibility [_camModelToWorld, eyePos _x] > 0 ||
-            [_x,"VIEW"] checkVisibility [_camModelToWorld, (_x modelToWorldVisualWorld (_x selectionPosition "spine2"))] > 0
-        )};
+        _targets = _targets select {
+            private _eyePosTgt = eyePos _x;
+            private _spinePosASL = _x modelToWorldVisualWorld (_x selectionPosition "spine2");
+            [_x,"FIRE"] checkVisibility [_camModelToWorld, _eyePosTgt] > 0 || 
+            [_x,"FIRE"] checkVisibility [_camModelToWorld, _spinePosASL] > 0 ||
+            [_x,"VIEW"] checkVisibility [_camModelToWorld, _eyePosTgt] > 0 ||
+            [_x,"VIEW"] checkVisibility [_camModelToWorld, _spinePosASL] > 0
+        };
         if (_targets isNotEqualTo []) then {
             _targets = flatten _targets;
             _targets = _targets arrayIntersect _targets;

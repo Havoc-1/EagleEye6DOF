@@ -16,7 +16,7 @@
 
 params ["_unit",["_searchDist",XK_6DOF_scanList],["_fov", 40]];
 
-if (isNil "_unit" || isNull _unit) exitWith {
+if (isNil "_unit" || isNull _unit || !(_unit isKindOf "CAManBase")) exitWith {
     ["Invalid unit selected. Exiting fn_add6dof.sqf", "add6dof",1] call XK_6DOF_fnc_diaglog;
 };
 
@@ -66,11 +66,19 @@ private _id = [
             _targets append (if (isNull objectParent _x) then {[_x]} else {crew _x});
         } forEach _searchList;
         
-        _targets = _targets select {
-            (((eyeDirection _unit) vectorDotProduct (eyePos _unit vectorFromTo eyePos _x)) >= cos (_fov/2)) &&
-            (([objNull,"VIEW"] checkVisibility [eyePos _unit, eyePos _x] > 0.5) || ([objNull,"VIEW"] checkVisibility [eyePos _unit, (_x modelToWorldVisualWorld (_x selectionPosition "spine2"))] > 0.5))
+        private _eyeDir = if (isPlayer _unit) then {
+            (positionCameraToWorld [0,0,0]) vectorFromTo (positionCameraToWorld [0,0,1]);
+        } else {
+            eyeDirection _unit;
         };
+        private _eyePosUnit = eyePos _unit;
 
+        _targets = _targets select {
+            private _eyePosTgt = eyePos _x;
+            ((_eyeDir vectorDotProduct (_eyePosUnit vectorFromTo _eyePosTgt)) >= cos (_fov/2)) &&
+            (([objNull,"VIEW"] checkVisibility [_eyePosUnit, _eyePosTgt] > 0.5) || ([objNull,"VIEW"] checkVisibility [_eyePosUnit, (_x modelToWorldVisualWorld (_x selectionPosition "spine2"))] > 0.5))
+        };
+        
         if (_targets isNotEqualTo []) then {
             _targets = flatten _targets;
             _targets = _targets arrayIntersect _targets;
