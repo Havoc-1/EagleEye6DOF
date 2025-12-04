@@ -18,15 +18,16 @@ _colorAlly set [3,_opacity];
 _colorTarget set [3,_opacity];
 _colorUnknown set [3,_opacity];
 
+//Offload icons to local vars
 private _iconEagleEye = XK_6DOF_iconEagleEye;
 private _iconAlly = XK_6DOF_iconAlly;
 private _iconEnemy = XK_6DOF_iconEnemy;
 private _iconUnknown = XK_6DOF_iconUnknown;
-
 private _enableUnknown = XK_6DOF_enableUnknown;
 
+//Sort target list
 private _sidePlayer = side player;
-private _sortedList = [_sidePlayer] call XK_6DOF_fnc_sortList;
+private _sortedList = missionNamespace getVariable ["XK_6DOF_sortedList", []];
 _sortedList params ["_listAllies","_listEnemy","_listEnemyUAV","_listUnknown","_listUnknownUAV"];
 
 //6DOF units

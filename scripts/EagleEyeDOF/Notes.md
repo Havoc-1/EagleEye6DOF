@@ -6,6 +6,12 @@ Filter vehicles by type?
 
 # NOTES
 
+## How to use
+
+   - Equip any goggles listed in the XK_6DOF_gogglesList list. Default goggles are: G_Goggles_VR, G_Tactical_Clear, G_Tactical_Black, G_Tactical_camo, G_Tactical_yellow.
+   - If XK_6DOF_headgearToggle is enabled, players must equip the headgear to begin scanning targets.
+   - ACE Self Interact to adjust information parameters.
+
 ## EagleEye Players
 
    - Targets are identified by looking at targets with goggles/helmet equipped.
@@ -41,6 +47,7 @@ Filter vehicles by type?
    
 # Known Limitations
 
+   - It is recommended to host this on a dedicated server. A lot of information is calculated server-side and may have low performance on player-hosted servers.
    - Overlay loses IFF colors under NVGs. This is due to drawLine3D being rendered in world space, the IFF markers above the head are a work around to this problem.
    - Overlays cannot be seen inside vehicles. Vehicle interiors are rendered in front of the world space, same as above.
    - Bad performance with lots of units. Draw3D has to be run on every frame, I've tried to optimise it where possible. This was designed around milsim groups with less target saturation.

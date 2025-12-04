@@ -20,6 +20,14 @@
 
 }] call CBA_fnc_addEventHandler;
 
+["XK_6DOF_EH_sortTargetList", {
+
+    private _sidePlayer = side player;
+    private _sortedList = [_sidePlayer] call XK_6DOF_fnc_sortList;
+    missionNamespace setVariable ["XK_6DOF_sortedList", _sortedList];
+
+}] call CBA_fnc_addEventHandler;
+
 //Global event to increment marked targets
 ["XK_6DOF_EH_targetIncr", {
     

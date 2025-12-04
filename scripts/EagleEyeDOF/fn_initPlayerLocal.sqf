@@ -78,18 +78,12 @@ params [["_player", player]];
         ] call ace_interact_menu_fnc_createAction;
 
         /* private _targetFilterFireteam = ["XK_6DOF_selfAction_targetFilterFireteam","Fireteam Only","z\ace\addons\interaction\ui\team\team_white_ca.paa",
-            {
-                XK_6DOF_targetFilter = 1;
-                hintSilent format ["%1", XK_6DOF_targetFilter];
-            },
+            {XK_6DOF_targetFilter = 1},
             {player getVariable ["XK_6DOF_enable", false]}
         ] call ace_interact_menu_fnc_createAction;
 
         private _targetFilterNearby = ["XK_6DOF_selfAction_targetFilterNearby","Nearby EagleEye Targets Only","x\cba\addons\diagnostic\data\monitor_on_ca.paa",
-            {
-                XK_6DOF_targetFilter = 2;
-                hintSilent format ["%1", XK_6DOF_targetFilter];
-            },
+            {XK_6DOF_targetFilter = 2},
             {player getVariable ["XK_6DOF_enable", false]}
         ] call ace_interact_menu_fnc_createAction; */
 

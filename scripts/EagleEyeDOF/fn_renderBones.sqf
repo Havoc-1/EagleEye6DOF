@@ -13,10 +13,6 @@
         7: Max Distance Target Skeleton <NUMBER> (Optional) - Ignore skeleton renders on enemy & unknown targets beyond this distance (shows bounding box only).
         8: Max Distance Allies <NUMBER> (Optional) - Ignore allied renders on targets beyond this distance.
         9: Max Distance Allied Skeleton <NUMBER> (Optional) - Ignore skeleton renders on allied targets beyond this distance (shows bounding box only).
-        10: Line Size <NUMBER> (Optional) - Thickness of bone lines for skeleton render.
-        11: Line Box Size <NUMBER> (Optional) - Thickness of bounding box lines.
-        12: IFF Size <NUMBER> (Optional) - Size for IFF Icon.
-        13: IFF Offset <NUMBER> (Optional) - IFF Icon height offset above target's head.
     
     Return Value: None
 
@@ -34,16 +30,11 @@ params [
     ["_maxDistTargets", 200],
     ["_maxDistTargetSkel", 100],
     ["_maxDistAllies", 100],
-    ["_maxDistAllySkel", 50],
-    ["_lineSize", 12],
-    ["_lineBoxSize", 3],
-    ["_iffSize", 0.3],
-    ["_iffOffset", 0.15]
+    ["_maxDistAllySkel", 50]
 ];
 
 //Min max distance cap
-if (_maxDistTargets < 50) then {_maxDistTargets = 50};
-if (_maxDistTargets > 800) then {_maxDistTargets = 800};
+_maxDistTargets max 800 min 50;
 if (_maxDistAllySkel > _maxDistAllies) then {_maxDistAllySkel = _maxDistAllies};
 
 //Init variables
@@ -52,9 +43,10 @@ private _isAlly = (side player) isEqualTo (side _target);
 private _playerDist = player distance _target;
 private _targetNum = _target getVariable ["XK_6DOF_Marked", nil];
 private _isMarked = !(isNil "_targetNum");
-private _visionMode = currentVisionMode player;
+private _normalVision = (currentVisionMode player) isEqualTo 0;
 private _isUncon = _target getVariable ["ACE_isUnconscious", false];
 private _is6dof = _target getVariable ["XK_6DOF_enable",false];
+private _notInGrp = group player isNotEqualTo group _target;
 
 if ( //Exit conditions
     isNil "_target" ||
@@ -64,7 +56,7 @@ if ( //Exit conditions
     (_target isEqualTo player && !_isUAVGunner) ||
     !(_target isKindOf "CAManBase") ||
     (_isAlly && (_playerDist > _maxDistAllies)) ||
-    (XK_6DOF_filterNVG && _visionMode isEqualTo 0) ||
+    (XK_6DOF_filterNVG && _normalVision) ||
     (_playerDist > _maxDistTargets && !_isUAVGunner) ||
     (_playerDist < 2 && !_isUAVGunner) ||
     !isNull curatorCamera ||
@@ -72,14 +64,17 @@ if ( //Exit conditions
 
     //Self Filter Allies
     (XK_6DOF_allyFilter isEqualTo 0 && _isAlly) || //Disabled
-    (XK_6DOF_allyFilter isEqualTo 1 && _isAlly && ((group player) isNotEqualTo (group _target))) || //Fireteam only
+    (XK_6DOF_allyFilter isEqualTo 1 && _isAlly && _notInGrp) || //Fireteam only
     (XK_6DOF_allyFilter isEqualTo 2 && _isAlly && !_is6dof) || //6DOF users only
 
     //Self Filter Allies
     XK_6DOF_targetFilter isEqualTo 0 && !_isAlly //Disabled
 ) exitWith {};
 
-
+private _lineSize = 12;
+private _lineBoxSize = 3;
+private _iffSize = 0.3;
+private _iffOffset = 0.15;
 
 //Calculate dynamic bounding box width
 private _eyePos = eyePos _target;
@@ -103,7 +98,7 @@ if (count _intersect > 0) then {
 };
 
 //Draw bounding box position
-private _light = getLighting select 1;
+private _lowLight = ((getLighting select 1) <= 0.4) && _normalVision;
 {
     private _dir1 = _camPos vectorFromTo (_x select 0);
     private _dir2 = _camPos vectorFromTo (_x select 1);
@@ -113,24 +108,25 @@ private _light = getLighting select 1;
     drawLine3D [_pos1, _pos2, _color, _lineBoxSize];
 
     //Draws lines again to fight opacity in low light environments. Not elegant but works.
-    if (_light <= 0.4 && (_visionMode isEqualTo 0)) then {drawLine3D [_pos1, _pos2, _color, _lineBoxSize]};
+    if (_lowLight) then {drawLine3D [_pos1, _pos2, _color, _lineBoxSize]};
 
 }forEach _drawBox;
 
 //Render IFF Icons
 if (_iffDisplay) then {
+    private _iffFilter = XK_6DOF_iffFilter;
     if !(
-        (XK_6DOF_iffFilter isEqualTo 0) || //Disabled
-        (XK_6DOF_iffFilter isEqualTo 1 && !_isAlly) || //Allies only
-        (XK_6DOF_iffFilter isEqualTo 2 && _isAlly) || //Targets only
-        (XK_6DOF_iffFilter isEqualTo 3 && ((group player) isNotEqualTo (group _target))) //Fireteam only
+        (_iffFilter isEqualTo 0) || //Disabled
+        (_iffFilter isEqualTo 1 && !_isAlly) || //Allies only
+        (_iffFilter isEqualTo 2 && _isAlly) || //Targets only
+        (_iffFilter isEqualTo 3 && _notInGrp) //Fireteam only
     ) then {
 
         //Targets
         private _iffPosAGL = ASLToAGL [_targetASL select 0, _targetASL select 1, (_eyePos select 2) + _iffOffset + _hOffset];
         private _fovAdjust = (getObjectFOV player - 0.75)/2;
         private _iffSizeAdjust = _iffSize - _fovAdjust;
-        private _iffSizeUAV = _iffSize - _fovAdjust*2.5;
+        private _iffSizeUAV = (_iffSize - _fovAdjust)*2;
         private _colorMark = _color;
 
         //Render enlarged IFF on self when operating UAV
@@ -173,7 +169,7 @@ if (_iffDisplay) then {
             private _name = _target getVariable ["XK_6DOF_Name",nil];
             if !(isNil "_name") then {_iffName = _name};
             private _textSize = 0.028;
-            private _topR = (_drawbox select 3 select 0);
+            private _topR = (_drawBox select 3 select 0);
             private _textAGL = ASLToAGL _topR;
 
             //Calculate line break distance for ID text
@@ -234,7 +230,7 @@ if (_render && (_isAlly && (_playerDist <= _maxDistAllySkel) || !_isAlly && (_pl
                 drawLine3D [_pos1, _pos2, _color, _lineSize];
 
                 //Draws lines again to fight opacity in low light environments. Not elegant but works.
-                if (_light <= 0.4 && (_visionMode isEqualTo 0)) then {drawLine3D [_pos1, _pos2, _color, _lineSize]};
+                if (_lowLight) then {drawLine3D [_pos1, _pos2, _color, _lineSize]};
             }forEach _boneList;
         };
 

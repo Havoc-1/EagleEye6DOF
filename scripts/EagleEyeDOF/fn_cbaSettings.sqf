@@ -26,7 +26,7 @@
     "SLIDER",
     ["IFF Icon Opacity","Opacity for IFF icons above targets."],
     "EagleEye 6DOF",
-    [0, 1, 0.9, 0, true],
+    [0, 1, 0.8, 0, true],
     0
 ] call CBA_fnc_addSetting;
 
@@ -94,7 +94,7 @@
     "CHECKBOX",
     ["Enable 6DOF on Headgear", "Enable sensors to track targets on headgear. When disabled, goggles will both render and track targets."],
     "EagleEye 6DOF",
-    true,
+    false,
     1
 ] call CBA_fnc_addSetting;
 

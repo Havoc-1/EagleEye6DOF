@@ -10,16 +10,14 @@
 
 params ["_unit"];
 
-if (!hasInterface || _unit isNotEqualTo player || isNull _unit || isNil "_unit") exitWith {};
+if (!hasInterface || _unit isNotEqualTo player || isNull _unit || isNil "_unit" || !isPlayer _unit) exitWith {};
 
 private _hasHeadgear = false;
 private _headgear = headgear _unit;
 private _PFHid = _unit getVariable ["XK_6DOF_scanPFH", nil];
 private _6dof = _unit getVariable ["XK_6DOF_enable", false];
-/* if !(isNil "_PFHid") then {
-    [format ["ScanPFH (%1) removed for %2 %3", name _unit, getPosATL _unit], "enableOverlay",1] call XK_6DOF_fnc_diaglog;
-}; */
 
+//Headgear condition gate
 if (XK_6DOF_headgearToggle) then {
     
     if (!(_headgear in XK_6DOF_headgearList) || _headgear isEqualTo "") then {
@@ -34,22 +32,24 @@ if (XK_6DOF_headgearToggle) then {
     } else {_hasHeadgear = true};
 } else {_hasHeadgear = true};
 
+//Goggles condition gate
 private _goggles = goggles _unit;
+private _id = missionNamespace getVariable ["XK_6DOF_draw3D", nil];
+
 if ((_goggles in XK_6DOF_gogglesList) && (_goggles isNotEqualTo "")) then {
-    if (isPlayer _unit) then {
+    if (isNil "_id") then {
         private _id = addMissionEventHandler ["Draw3D", { call XK_6DOF_fnc_draw3Dsort }];
         missionNamespace setVariable ["XK_6DOF_draw3D", _id];
     };
 } else {
-    if (isPlayer _unit) then {
-        private _id = missionNamespace getVariable ["XK_6DOF_draw3D", nil];
-        if !(isNil "_id") then {
-            removeMissionEventHandler ["Draw3D", _id];
-            [format ["Draw3D MissionEventHandler removed for %1 %2",name _unit, getPosATL _unit], "enableOverlay",1] call XK_6DOF_fnc_diaglog;
-        };
+    if !(isNil "_id") then {
+        removeMissionEventHandler ["Draw3D", _id];
+        missionNamespace setVariable ["XK_6DOF_draw3D", nil];
+        [format ["Draw3D MissionEventHandler removed for %1 %2",name _unit, getPosATL _unit], "enableOverlay",1] call XK_6DOF_fnc_diaglog;
     };
 };
 
+//Add 6DOF if conditions are met
 if (_hasHeadgear) then {
     [_unit] call XK_6DOF_fnc_add6dof;
 } else {
