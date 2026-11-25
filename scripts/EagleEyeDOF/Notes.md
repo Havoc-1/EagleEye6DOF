@@ -30,7 +30,7 @@ Filter vehicles by type?
 
    ## Functions
 
-   To force add EagleEye to AI (Not requied for players)
+   To force add EagleEye to AI (Not required for players)
    - [_myUnit] call XK_6DOF_fnc_add6dof;
 
    To force add EagleEye to drone (designed for AR-2 Darters, other drones may not work as intended)

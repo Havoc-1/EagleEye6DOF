@@ -23,6 +23,8 @@ if (XK_6DOF_headgearToggle) then {
     if (!(_headgear in XK_6DOF_headgearList) || _headgear isEqualTo "") then {
 
         _unit setVariable ["XK_6DOF_enable", nil, true];
+        XK_6DOF_serverList = [];
+        XK_6DOF_serverListUAV = [];
         
         if (!isNil "_PFHid") then {
             [_PFHid] call CBA_fnc_removePerFrameHandler;

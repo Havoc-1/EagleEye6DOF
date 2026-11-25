@@ -21,7 +21,7 @@ private _targets = createHashMapFromArray [
     private _isUAV = (_forEachIndex isEqualTo 1);
     {
         private _unit = _x;
-        private _side = side _unit;
+        private _sideCheck = side _unit;
         private _is6DOF = _unit getVariable ["XK_6DOF_enable", false];
         private _armed = currentWeapon _unit isNotEqualTo "";
 
